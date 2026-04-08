@@ -1,0 +1,179 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname, useSearchParams } from "next/navigation";
+import { Activity, Bot, ChartColumnBig, ChevronDown, Clapperboard, CreditCard, LayoutPanelLeft, Rocket, Settings2, ShoppingBag, Wrench } from "lucide-react";
+import { DeleteProjectButton } from "@/components/forms/delete-project-button";
+import { Badge } from "@/components/ui/badge";
+import { LanguageSwitcher } from "@/components/layout/language-switcher";
+import { cn } from "@/lib/utils";
+
+type SidebarProject = {
+  id: string;
+  name: string;
+  platform: string;
+  domain: string;
+};
+
+function buildHref(pathname: string, nextProjectId: string) {
+  if (pathname.startsWith("/dashboard/sites/")) {
+    return pathname.replace(/^\/dashboard\/sites\/[^/]+/, `/dashboard/sites/${nextProjectId}`);
+  }
+  return `/dashboard/sites/${nextProjectId}/overview`;
+}
+
+export function DashboardSidebar({
+  user,
+  projects,
+  locale,
+  appName,
+  experimentOs,
+  proTrial
+}: {
+  user: { fullName: string; email: string };
+  projects: SidebarProject[];
+  locale: string;
+  appName: string;
+  experimentOs: string;
+  proTrial: string;
+}) {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const currentProjectId = pathname.match(/^\/dashboard\/sites\/([^/]+)/)?.[1] ?? projects[0]?.id;
+  const currentProject = projects.find((project) => project.id === currentProjectId) ?? projects[0];
+  const section = pathname.match(/^\/dashboard\/sites\/[^/]+\/([^/?#]+)/)?.[1] ?? "overview";
+  const query = searchParams.toString();
+  const withQuery = (href: string) => `${href}${query ? `?${query}` : `?lang=${locale}`}`;
+
+  const groups = currentProject ? [
+    {
+      label: "Command",
+      items: [
+        { href: `/dashboard/sites/${currentProject.id}/overview`, label: "Overview", icon: LayoutPanelLeft, key: "overview" }
+      ]
+    },
+    {
+      label: "Observe",
+      items: [
+        { href: `/dashboard/sites/${currentProject.id}/analytics`, label: "Analytics", icon: ChartColumnBig, key: "analytics" },
+        { href: `/dashboard/sites/${currentProject.id}/sessions`, label: "Sessions", icon: Clapperboard, key: "sessions" },
+        { href: `/dashboard/sites/${currentProject.id}/activity`, label: "Activity", icon: Activity, key: "activity" }
+      ]
+    },
+    {
+      label: "Decide",
+      items: [
+        { href: `/dashboard/sites/${currentProject.id}/ai`, label: "AI Copilot", icon: Bot, key: "ai" }
+      ]
+    },
+    {
+      label: "Act",
+      items: [
+        { href: `/dashboard/sites/${currentProject.id}/experiments`, label: "Experiments", icon: Rocket, key: "experiments" },
+        { href: `/dashboard/sites/${currentProject.id}/installation`, label: "Installation", icon: Settings2, key: "installation" }
+      ]
+    }
+  ] : [];
+
+  return (
+    <aside className="border-r border-border bg-[#fcfcfa] p-5 lg:p-6">
+      <div className="sticky top-0 space-y-6">
+        <Link href={currentProject ? withQuery(`/dashboard/sites/${currentProject.id}/overview`) : "/dashboard"} className="flex items-center gap-3">
+          <div className="rounded-2xl bg-primary p-3 text-primary-foreground">
+            <ShoppingBag className="h-5 w-5" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-lg font-semibold">{appName}</p>
+            <p className="truncate text-xs text-muted-foreground">{experimentOs}</p>
+          </div>
+        </Link>
+
+        <details className="rounded-[1.25rem] border border-border bg-white p-4" open>
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-xs font-medium text-muted-foreground">Current site</p>
+              <p className="mt-1 truncate text-sm font-semibold">{currentProject?.name ?? "No site selected"}</p>
+              <p className="truncate text-xs text-muted-foreground">{currentProject?.domain ?? "Create a site to begin"}</p>
+            </div>
+            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          </summary>
+          <div className="mt-4 space-y-2">
+            {projects.map((project) => (
+              <Link
+                key={project.id}
+                href={withQuery(buildHref(pathname, project.id))}
+                className={cn(
+                  "block rounded-2xl border px-3 py-3 transition",
+                  project.id === currentProject?.id ? "border-primary/20 bg-primary/5" : "border-transparent hover:border-border hover:bg-secondary/40"
+                )}
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <p className="truncate text-sm font-medium">{project.name}</p>
+                  <Badge>{project.platform}</Badge>
+                </div>
+                <p className="mt-1 truncate text-xs text-muted-foreground">{project.domain}</p>
+              </Link>
+            ))}
+            <Link href={withQuery("/dashboard/projects/new")} className="mt-2 flex items-center gap-2 rounded-2xl border border-dashed border-border px-3 py-3 text-sm text-muted-foreground transition hover:bg-secondary/40">
+              <Wrench className="h-4 w-4" />
+              Add a new site
+            </Link>
+            {currentProject ? (
+              <DeleteProjectButton projectId={currentProject.id} projectName={currentProject.name} locale={locale} />
+            ) : null}
+          </div>
+        </details>
+
+        <nav className="space-y-5">
+          {groups.map((group) => (
+            <div key={group.label}>
+              <p className="mb-2 px-2 text-xs font-medium text-muted-foreground">{group.label}</p>
+              <div className="space-y-1">
+                {group.items.map((item) => {
+                  const Icon = item.icon;
+                  const active = section === item.key;
+                  return (
+                    <Link
+                      key={item.href}
+                      href={withQuery(item.href)}
+                      className={cn(
+                        "flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm transition",
+                        active ? "bg-primary text-white" : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                      )}
+                    >
+                      <Icon className="h-4 w-4" />
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+
+          <div>
+            <p className="mb-2 px-2 text-xs font-medium text-muted-foreground">Workspace</p>
+            <div className="space-y-1">
+              <Link href={withQuery("/dashboard/shopify")} className="flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm text-muted-foreground transition hover:bg-secondary hover:text-foreground">
+                <ShoppingBag className="h-4 w-4" />
+                Shopify hub
+              </Link>
+              <Link href={withQuery("/dashboard/billing")} className="flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm text-muted-foreground transition hover:bg-secondary hover:text-foreground">
+                <CreditCard className="h-4 w-4" />
+                Billing
+              </Link>
+            </div>
+          </div>
+        </nav>
+
+        <div className="rounded-[1.25rem] border border-border bg-white p-4">
+          <p className="text-sm font-semibold">{user.fullName}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{user.email}</p>
+          <Badge className="mt-3 bg-primary/10 text-primary">{proTrial}</Badge>
+          <div className="mt-4">
+            <LanguageSwitcher />
+          </div>
+        </div>
+      </div>
+    </aside>
+  );
+}

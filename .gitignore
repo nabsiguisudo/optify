@@ -1,0 +1,36 @@
+# dependencies
+node_modules/
+
+# next.js build output
+.next/
+out/
+
+# local env files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# local data and caches
+.optify/
+.npm-cache/
+.local-node/
+tsconfig.tsbuildinfo
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# operating system files
+.DS_Store
+Thumbs.db
+
+# editor / misc
+.idea/
+.vscode/
+
+# backup folders
+.next_bak_*/
