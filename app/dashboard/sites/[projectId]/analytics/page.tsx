@@ -3,19 +3,25 @@ import { notFound } from "next/navigation";
 import { FunnelOverviewCard } from "@/components/dashboard/funnel-overview";
 import { GlobalKpiChart } from "@/components/dashboard/global-kpi-chart";
 import { PeriodComparisonCard } from "@/components/dashboard/period-comparison";
-import { SegmentationPanel } from "@/components/dashboard/segmentation-panel";
-import { StatsChart } from "@/components/dashboard/stats-chart";
 import { Button } from "@/components/ui/button";
 import {
+  DashboardCompactList,
   DashboardEmpty,
   DashboardKpiCard,
   DashboardKpiGrid,
-  DashboardMetricList,
   DashboardPageHeader,
-  DashboardSection,
-  DashboardStatusBadge
+  DashboardStatusBadge,
+  DashboardWidget,
+  DashboardWidgetGrid
 } from "@/components/dashboard/site-dashboard-primitives";
-import { getExperimentStats, getExperimentsByProject, getProjectAnalytics, getProjectBehaviorInsights, getProjectById } from "@/lib/data";
+import {
+  getExperimentStats,
+  getExperimentsByProject,
+  getProjectAnalytics,
+  getProjectBehaviorInsights,
+  getProjectById,
+  getProjectSessionDiagnostics
+} from "@/lib/data";
 import { resolveLocale, withLang } from "@/lib/i18n";
 import {
   formatDashboardCurrency,
@@ -29,6 +35,13 @@ import {
 function formatPageLabel(pathname: string) {
   if (pathname === "/" || pathname === "/home") return "Accueil";
   return pathname;
+}
+
+function formatDeviceLabel(deviceType: "desktop" | "tablet" | "mobile" | "unknown") {
+  if (deviceType === "mobile") return "Mobile";
+  if (deviceType === "tablet") return "Tablette";
+  if (deviceType === "desktop") return "Desktop";
+  return "Inconnu";
 }
 
 export default async function SiteAnalyticsPage({
@@ -46,11 +59,13 @@ export default async function SiteAnalyticsPage({
 
   const experiments = await getExperimentsByProject(projectId);
   const runningExperiment = experiments.find((experiment) => experiment.status === "running");
-  const [analytics, runningStats, behavior] = await Promise.all([
+  const [analytics, runningStats, behavior, sessions] = await Promise.all([
     getProjectAnalytics(projectId),
     runningExperiment ? getExperimentStats(runningExperiment.id) : Promise.resolve(undefined),
-    getProjectBehaviorInsights(projectId)
+    getProjectBehaviorInsights(projectId),
+    getProjectSessionDiagnostics(projectId, 6)
   ]);
+
   const hasAnalyticsData = analytics.timeline.some((point) => (
     point.sessions > 0 ||
     point.visitors > 0 ||
@@ -59,128 +74,125 @@ export default async function SiteAnalyticsPage({
     point.purchases > 0
   ));
 
+  const topPages = behavior.topPages.slice(0, 5);
+  const topInteractions = behavior.topInteractions.slice(0, 5);
+  const recentSignals = behavior.eventFeed.slice(0, 5);
+  const deviceBreakdown = [
+    { label: "Mobile", value: sessions.filter((session) => session.deviceType === "mobile").length },
+    { label: "Desktop", value: sessions.filter((session) => session.deviceType === "desktop").length },
+    { label: "Tablette", value: sessions.filter((session) => session.deviceType === "tablet").length },
+    { label: "Inconnu", value: sessions.filter((session) => session.deviceType === "unknown").length }
+  ].filter((item) => item.value > 0);
+
   return (
     <div className="space-y-6">
       <DashboardPageHeader
         eyebrow={copy.pages.analytics.title}
         title={project.name}
-        description={copy.pages.analytics.description}
+        description="Une lecture plus proche d'un dashboard d'analyse comportementale: KPIs en haut, courbe de trafic, sessions, pages, zones cliquées et qualité de collecte."
         actions={(
           <>
             <Button asChild>
-              <Link href={withLang(`/dashboard/sites/${projectId}/segments`, locale)}>Voir les segments</Link>
+              <Link href={withLang(`/dashboard/sites/${projectId}/sessions`, locale)}>Voir les sessions</Link>
             </Button>
             <Button asChild variant="outline">
-              <Link href={withLang(`/dashboard/sites/${projectId}/sessions`, locale)}>Voir les sessions</Link>
+              <Link href={withLang(`/dashboard/sites/${projectId}/segments`, locale)}>Voir les segments</Link>
             </Button>
           </>
         )}
         meta={(
           <>
-            <DashboardStatusBadge label={`${formatDashboardNumber(behavior.totals.sessions, locale)} sessions suivies`} tone="good" />
+            <DashboardStatusBadge label={`${formatDashboardNumber(analytics.kpis.uniqueVisitors, locale)} visiteurs`} tone="good" />
             <DashboardStatusBadge label={`${formatDashboardNumber(behavior.totals.trackedClicks, locale)} clics suivis`} tone="muted" />
-            <DashboardStatusBadge label={`${formatDashboardNumber(analytics.kpis.purchases, locale)} achats`} />
+            <DashboardStatusBadge label={`${formatDashboardNumber(analytics.kpis.purchases, locale)} achats`} tone="warn" />
           </>
         )}
       />
 
-      <DashboardSection title={copy.pages.analytics.trafficTitle} description={copy.pages.analytics.trafficDescription}>
-        <DashboardKpiGrid>
-          <DashboardKpiCard label={copy.common.visitors} value={formatDashboardNumber(analytics.kpis.uniqueVisitors, locale)} />
-          <DashboardKpiCard label={copy.common.sessions} value={formatDashboardNumber(analytics.kpis.sessions, locale)} tone="soft" />
-          <DashboardKpiCard label={copy.common.addToCart} value={formatDashboardNumber(analytics.kpis.addToCart, locale)} tone="warm" />
-          <DashboardKpiCard label={copy.common.purchases} value={formatDashboardNumber(analytics.kpis.purchases, locale)} hint={formatDashboardCurrency(Math.round(analytics.kpis.revenue), locale)} />
-        </DashboardKpiGrid>
-      </DashboardSection>
+      <DashboardKpiGrid>
+        <DashboardKpiCard label="Visiteurs" value={formatDashboardNumber(analytics.kpis.uniqueVisitors, locale)} />
+        <DashboardKpiCard label="Sessions" value={formatDashboardNumber(analytics.kpis.sessions, locale)} tone="soft" />
+        <DashboardKpiCard label="Conversions" value={formatDashboardNumber(analytics.kpis.conversions, locale)} tone="warm" />
+        <DashboardKpiCard
+          label="Chiffre d'affaires"
+          value={formatDashboardCurrency(Math.round(analytics.kpis.revenue), locale)}
+          hint={`${formatDashboardPercent(analytics.kpis.checkoutStarts === 0 ? 0 : analytics.kpis.purchases / analytics.kpis.checkoutStarts, locale)} après checkout`}
+        />
+      </DashboardKpiGrid>
 
       {!hasAnalyticsData ? (
-        <DashboardSection title="Pourquoi tout est a zero ?" description="Un etat vide explicite est plus utile qu'un faux dashboard.">
+        <DashboardWidget title="Pourquoi Analytics est vide" description="On préfère un état clair à un faux dashboard rempli de cartes mortes.">
           <DashboardEmpty
-            title="Aucune donnee analytics pour ce projet"
-            body="Si tu as deja fait des visites ou des ajouts au panier, le cas le plus probable est que la boutique envoie encore vers un ancien project ID. Reprends les snippets de la page Installation de ce projet, recolles-les dans Shopify, puis recharge la boutique."
+            title="Pas encore assez de données pour ce projet"
+            body="Si tu as déjà navigué sur la boutique, vérifie que le snippet Liquid et le custom pixel pointent bien vers ce projectId, puis recharge la boutique et refais quelques visites, clics et ajouts au panier."
           />
-        </DashboardSection>
+        </DashboardWidget>
       ) : null}
 
-      <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+      <DashboardWidgetGrid className="xl:grid-cols-[1.08fr_0.92fr]">
         <GlobalKpiChart timeline={analytics.timeline} />
+        <DashboardWidget
+          title="Sessions récentes"
+          description="La meilleure entrée pour relier immédiatement le trafic aux vraies visites."
+          aside={<DashboardStatusBadge label={`${formatDashboardNumber(sessions.length, locale)} visibles`} tone="good" />}
+        >
+          {sessions.length > 0 ? (
+            <DashboardCompactList
+              items={sessions.slice(0, 5).map((session) => ({
+                label: session.anonymousId || session.sessionId,
+                value: formatDeviceLabel(session.deviceType),
+                note: `${formatDashboardDateTime(session.startedAt, locale)} · ${session.pages} pages · ${session.rageClicks} rage clicks · ${session.deadClicks} clics sans effet`
+              }))}
+            />
+          ) : (
+            <DashboardEmpty title="Aucune session récente" body="Dès que la boutique remontera plus de visites, elles apparaîtront ici en premier." />
+          )}
+        </DashboardWidget>
+      </DashboardWidgetGrid>
+
+      <DashboardWidgetGrid className="xl:grid-cols-[0.94fr_1.06fr]">
         <PeriodComparisonCard comparison={analytics.periodComparison} />
-      </div>
-
-      <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
         <FunnelOverviewCard funnel={analytics.funnel} />
-        <DashboardSection title="Lecture business" description="Quelques ratios simples a lire sans jargon ni code couleur trompeur.">
-          <DashboardMetricList
-            items={[
-              {
-                label: "Taux d'ajout au panier",
-                value: formatDashboardPercent(analytics.kpis.uniqueVisitors === 0 ? 0 : analytics.kpis.addToCart / analytics.kpis.uniqueVisitors, locale),
-                note: `${formatDashboardNumber(analytics.kpis.addToCart, locale)} ajouts pour ${formatDashboardNumber(analytics.kpis.uniqueVisitors, locale)} visiteurs`
-              },
-              {
-                label: "Taux de passage en checkout",
-                value: formatDashboardPercent(analytics.kpis.addToCart === 0 ? 0 : analytics.kpis.checkoutStarts / analytics.kpis.addToCart, locale),
-                note: `${formatDashboardNumber(analytics.kpis.checkoutStarts, locale)} checkouts demarres`
-              },
-              {
-                label: "Taux d'achat",
-                value: formatDashboardPercent(analytics.kpis.checkoutStarts === 0 ? 0 : analytics.kpis.purchases / analytics.kpis.checkoutStarts, locale),
-                note: `${formatDashboardCurrency(Math.round(analytics.kpis.revenue), locale)} de revenu observe`
-              },
-              {
-                label: "Panier moyen",
-                value: formatDashboardCurrency(Math.round(analytics.kpis.averageOrderValue), locale),
-                note: `${formatDashboardNumber(analytics.kpis.purchases, locale)} achats suivis`
-              }
-            ]}
-          />
-        </DashboardSection>
-      </div>
+      </DashboardWidgetGrid>
 
-      <div className="grid gap-6 xl:grid-cols-[1fr_1fr]">
-        <DashboardSection title={copy.pages.analytics.pageTableTitle} description={copy.pages.analytics.pageTableDescription}>
-          {behavior.topPages.length > 0 ? (
-            <DashboardMetricList
-              items={behavior.topPages.slice(0, 6).map((page) => ({
+      <DashboardWidgetGrid>
+        <DashboardWidget title="Top pages" description="Les pages qui concentrent le trafic et l'intention d'achat.">
+          {topPages.length > 0 ? (
+            <DashboardCompactList
+              items={topPages.map((page) => ({
                 label: formatPageLabel(page.pathname),
                 value: `${formatDashboardNumber(page.visits, locale)} visites`,
-                note: `${formatDashboardNumber(page.clicks, locale)} clics, ${formatDashboardNumber(page.addToCart, locale)} paniers, ${formatDashboardCurrency(Math.round(page.revenue), locale)}`
+                note: `${formatDashboardNumber(page.clicks, locale)} clics · ${formatDashboardNumber(page.addToCart, locale)} ajouts au panier · ${formatDashboardCurrency(Math.round(page.revenue), locale)}`
               }))}
             />
           ) : (
-            <DashboardEmpty title="Pas encore de pages utiles" body="Cette section deviendra utile des que la boutique aura accumule assez de visites et d'actions." />
+            <DashboardEmpty title="Aucune page forte" body="Cette liste s'affichera dès que le projet aura accumulé plus de trafic utile." />
           )}
-        </DashboardSection>
+        </DashboardWidget>
 
-        <DashboardSection title={copy.pages.analytics.interactionTableTitle} description={copy.pages.analytics.interactionTableDescription}>
-          {behavior.topInteractions.length > 0 ? (
-            <DashboardMetricList
-              items={behavior.topInteractions.slice(0, 6).map((item) => ({
-                label: item.label || item.selector || "Element sans libelle",
+        <DashboardWidget title="Zones cliquées" description="Les éléments qui attirent vraiment l'attention sur le site.">
+          {topInteractions.length > 0 ? (
+            <DashboardCompactList
+              items={topInteractions.map((item) => ({
+                label: item.label || item.selector || "Élément sans libellé",
                 value: `${formatDashboardNumber(item.totalClicks, locale)} clics`,
-                note: `${formatPageLabel(item.pathname)} - ${formatEventLabel(item.eventType, locale)} - ${formatDashboardDateTime(item.lastSeenAt, locale)}`
+                note: `${formatPageLabel(item.pathname)} · ${formatEventLabel(item.eventType, locale)} · ${formatDashboardDateTime(item.lastSeenAt, locale)}`
               }))}
             />
           ) : (
-            <DashboardEmpty title="Aucune zone d'interaction claire" body="Des que suffisamment de clics seront enregistres, cette zone montrera les elements qui concentrent l'attention." />
+            <DashboardEmpty title="Aucune zone cliquée dominante" body="Les zones les plus sollicitées apparaîtront ici dès que le volume de clics sera suffisant." />
           )}
-        </DashboardSection>
-      </div>
+        </DashboardWidget>
+      </DashboardWidgetGrid>
 
-      <div className="grid gap-6 xl:grid-cols-[1fr_1fr]">
-        <SegmentationPanel segments={analytics.segments} />
-        <DashboardSection title={copy.pages.analytics.qualityTitle} description={copy.pages.analytics.qualityDescription}>
-          <DashboardMetricList
+      <DashboardWidgetGrid>
+        <DashboardWidget title="Qualité de collecte" description="Pour vérifier rapidement si la data est exploitable.">
+          <DashboardCompactList
             items={[
               {
-                label: "Evenements recents",
-                value: formatDashboardNumber(behavior.eventFeed.length, locale),
-                note: behavior.eventFeed[0] ? `Dernier signal: ${formatDashboardDateTime(behavior.eventFeed[0].timestamp, locale)}` : "Aucun signal recent."
-              },
-              {
-                label: "Taux de rebond",
-                value: formatDashboardPercent(analytics.kpis.bounceRate, locale),
-                note: `${formatDashboardNumber(analytics.kpis.pageViews, locale)} vues de page observees`
+                label: "Événements récents",
+                value: formatDashboardNumber(recentSignals.length, locale),
+                note: recentSignals[0] ? `Dernier signal: ${formatDashboardDateTime(recentSignals[0].timestamp, locale)}` : "Aucun signal récent."
               },
               {
                 label: "CTR des recommandations",
@@ -188,68 +200,107 @@ export default async function SiteAnalyticsPage({
                 note: `${formatDashboardNumber(analytics.kpis.recommendationClicks, locale)} clics pour ${formatDashboardNumber(analytics.kpis.recommendationImpressions, locale)} impressions`
               },
               {
-                label: "Erreurs JS",
+                label: "Erreurs JavaScript",
                 value: formatDashboardNumber(analytics.kpis.jsErrors, locale),
-                note: analytics.kpis.jsErrors > 0 ? "Des erreurs front ont ete detectees." : "Aucune erreur JS remontee sur la periode."
+                note: analytics.kpis.jsErrors > 0 ? "Des erreurs front ont été remontées sur la période." : "Aucune erreur JS remontée."
+              },
+              {
+                label: "Taux de rebond",
+                value: formatDashboardPercent(analytics.kpis.bounceRate, locale),
+                note: `${formatDashboardNumber(analytics.kpis.pageViews, locale)} vues de page observées`
               }
             ]}
           />
-        </DashboardSection>
-      </div>
+        </DashboardWidget>
 
-      <DashboardSection
-        title="Segments à suivre"
-        description="Cette zone sert de passerelle entre Analytics et un futur dashboard personnalisé par segment."
-        aside={(
-          <Button asChild variant="outline">
-            <Link href={withLang(`/dashboard/sites/${projectId}/segments`, locale)}>Ouvrir Segments</Link>
-          </Button>
-        )}
-      >
-        <DashboardMetricList
-          items={[
-            {
-              label: "Segment de page clé",
-              value: behavior.topPages[0] ? formatPageLabel(behavior.topPages[0].pathname) : "Aucun",
-              note: "Tous les visiteurs qui passent par la page la plus importante du site."
-            },
-            {
-              label: "Segment d'intention",
-              value: `${formatDashboardNumber(analytics.kpis.addToCart, locale)} actions panier`,
-              note: "Visiteurs qui montrent une vraie intention d'achat."
-            },
-            {
-              label: "Segment de friction",
-              value: `${formatDashboardNumber(analytics.kpis.rageClicks + analytics.kpis.deadClicks, locale)} signaux`,
-              note: "Visiteurs qui semblent bloqués ou frustrés pendant la navigation."
-            }
-          ]}
-        />
-      </DashboardSection>
+        <DashboardWidget title="Répartition du trafic" description="Un résumé simple par device, utile avant d'ouvrir les sessions.">
+          {deviceBreakdown.length > 0 ? (
+            <DashboardCompactList
+              items={deviceBreakdown.map((item) => ({
+                label: item.label,
+                value: formatDashboardNumber(item.value, locale),
+                note: `${formatDashboardPercent(sessions.length === 0 ? 0 : item.value / sessions.length, locale)} des sessions récentes`
+              }))}
+            />
+          ) : (
+            <DashboardEmpty title="Répartition device indisponible" body="Dès que les sessions enregistrées auront assez de volume, la ventilation mobile, desktop et tablette apparaîtra ici." />
+          )}
+        </DashboardWidget>
+      </DashboardWidgetGrid>
+
+      <DashboardWidgetGrid className="xl:grid-cols-[0.92fr_1.08fr]">
+        <DashboardWidget
+          title="Segments à suivre"
+          description="Le prochain cran FullStory-like: créer puis épingler des segments utiles au dashboard."
+          aside={(
+            <Button asChild variant="outline">
+              <Link href={withLang(`/dashboard/sites/${projectId}/segments`, locale)}>Ouvrir Segments</Link>
+            </Button>
+          )}
+        >
+          <DashboardCompactList
+            items={[
+              {
+                label: "Visiteurs à forte intention",
+                value: `${formatDashboardNumber(analytics.kpis.addToCart, locale)} actions`,
+                note: "Tous les visiteurs qui ajoutent au panier ou démarrent un checkout."
+              },
+              {
+                label: "Visiteurs en friction",
+                value: `${formatDashboardNumber(analytics.kpis.rageClicks + analytics.kpis.deadClicks, locale)} signaux`,
+                note: "Rage clicks, clics sans effet ou sessions avec erreurs."
+              },
+              {
+                label: "Entrées sur page clé",
+                value: topPages[0] ? formatPageLabel(topPages[0].pathname) : "Aucune",
+                note: "Un segment prêt à être épinglé dans un futur dashboard personnalisé."
+              }
+            ]}
+          />
+        </DashboardWidget>
+
+        <DashboardWidget title="Lecture business" description="Quelques ratios lisibles sans jargon ni storytelling creux.">
+          <DashboardCompactList
+            items={[
+              {
+                label: "Taux d'ajout au panier",
+                value: formatDashboardPercent(analytics.kpis.uniqueVisitors === 0 ? 0 : analytics.kpis.addToCart / analytics.kpis.uniqueVisitors, locale),
+                note: `${formatDashboardNumber(analytics.kpis.addToCart, locale)} ajouts pour ${formatDashboardNumber(analytics.kpis.uniqueVisitors, locale)} visiteurs`
+              },
+              {
+                label: "Passage au checkout",
+                value: formatDashboardPercent(analytics.kpis.addToCart === 0 ? 0 : analytics.kpis.checkoutStarts / analytics.kpis.addToCart, locale),
+                note: `${formatDashboardNumber(analytics.kpis.checkoutStarts, locale)} checkouts démarrés`
+              },
+              {
+                label: "Taux d'achat",
+                value: formatDashboardPercent(analytics.kpis.checkoutStarts === 0 ? 0 : analytics.kpis.purchases / analytics.kpis.checkoutStarts, locale),
+                note: `${formatDashboardNumber(analytics.kpis.purchases, locale)} achats suivis`
+              },
+              {
+                label: "Panier moyen",
+                value: formatDashboardCurrency(Math.round(analytics.kpis.averageOrderValue), locale),
+                note: `${formatDashboardCurrency(Math.round(analytics.kpis.revenue), locale)} de revenu observé`
+              }
+            ]}
+          />
+        </DashboardWidget>
+      </DashboardWidgetGrid>
 
       {runningStats ? (
-        <DashboardSection
-          title="Experience en cours"
-          description="Si un test est actif, voici un mini point de lecture sur sa performance."
+        <DashboardWidget
+          title="Expérience actuellement en diffusion"
+          description="Un rappel rapide du test actif pour ne pas mélanger analytics comportemental et lecture A/B."
           aside={runningStats.winner ? <DashboardStatusBadge label={`Gagnant: ${runningStats.winner}`} tone="good" /> : undefined}
         >
-          <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
-            <DashboardMetricList
-              items={runningStats.variants.map((variant) => ({
-                label: variant.variantKey,
-                value: formatDashboardPercent(variant.conversionRate, locale),
-                note: `${formatDashboardNumber(variant.visitors, locale)} visiteurs, ${formatDashboardNumber(variant.conversions, locale)} conversions`
-              }))}
-            />
-            <StatsChart
-              data={runningStats.variants.map((variant) => ({
-                variant: variant.variantKey,
-                conversionRate: Number((variant.conversionRate * 100).toFixed(1)),
-                visitors: variant.visitors
-              }))}
-            />
-          </div>
-        </DashboardSection>
+          <DashboardCompactList
+            items={runningStats.variants.map((variant) => ({
+              label: variant.variantKey,
+              value: formatDashboardPercent(variant.conversionRate, locale),
+              note: `${formatDashboardNumber(variant.visitors, locale)} visiteurs · ${formatDashboardNumber(variant.conversions, locale)} conversions`
+            }))}
+          />
+        </DashboardWidget>
       ) : null}
     </div>
   );

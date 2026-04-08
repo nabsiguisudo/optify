@@ -62,6 +62,43 @@ export function DashboardKpiGrid({ children }: { children: ReactNode }) {
   return <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">{children}</div>;
 }
 
+export function DashboardWidgetGrid({
+  children,
+  className
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return <div className={cn("grid gap-6 xl:grid-cols-2", className)}>{children}</div>;
+}
+
+export function DashboardWidget({
+  title,
+  description,
+  aside,
+  children,
+  className
+}: {
+  title: string;
+  description?: string;
+  aside?: ReactNode;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <Card className={cn("border border-[#ebe3d5] bg-white shadow-[0_14px_34px_rgba(73,56,26,0.05)]", className)}>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="max-w-3xl">
+          <h3 className="text-lg font-semibold text-[#221b10]">{title}</h3>
+          {description ? <p className="mt-1 text-sm text-[#6b6255]">{description}</p> : null}
+        </div>
+        {aside}
+      </div>
+      <div className="mt-5">{children}</div>
+    </Card>
+  );
+}
+
 export function DashboardKpiCard({
   label,
   value,
@@ -104,6 +141,28 @@ export function DashboardMetricList({
               {item.note ? <p className="mt-1 text-sm text-[#7a705f]">{item.note}</p> : null}
             </div>
             <p className="shrink-0 text-sm font-semibold text-[#221b10]">{item.value}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function DashboardCompactList({
+  items
+}: {
+  items: Array<{ label: string; value?: string; note?: string; href?: string }>;
+}) {
+  return (
+    <div className="space-y-2.5">
+      {items.map((item) => (
+        <div key={`${item.label}-${item.value ?? ""}-${item.note ?? ""}`} className="rounded-[1rem] border border-[#efe7db] bg-[#fcfaf6] px-4 py-3">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium text-[#3f3528]">{item.label}</p>
+              {item.note ? <p className="mt-1 text-xs leading-5 text-[#7a705f]">{item.note}</p> : null}
+            </div>
+            {item.value ? <p className="shrink-0 text-sm font-semibold text-[#221b10]">{item.value}</p> : null}
           </div>
         </div>
       ))}

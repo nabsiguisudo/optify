@@ -25,7 +25,7 @@ function formatValue(metric: Metric, value: number) {
 }
 
 export function GlobalKpiChart({ timeline }: { timeline: ExperimentTimeSeriesPoint[] }) {
-  const [metric, setMetric] = useState<Metric>("sessions");
+  const [metric, setMetric] = useState<Metric>("pageViews");
   const activeMetric = options.find((option) => option.key === metric) ?? options[0];
   const points = useMemo(
     () => timeline.map((point) => ({ ...point, label: new Date(point.date).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" }) })),
@@ -38,8 +38,8 @@ export function GlobalKpiChart({ timeline }: { timeline: ExperimentTimeSeriesPoi
     <Card className="bg-white">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-lg font-semibold">Evolution du trafic</p>
-          <p className="mt-1 text-sm text-muted-foreground">Une lecture simple de la tendance sur la periode observee.</p>
+          <p className="text-lg font-semibold">Évolution du trafic</p>
+          <p className="mt-1 text-sm text-muted-foreground">Une lecture simple du volume observé sur la période sélectionnée.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <div className="rounded-full bg-secondary px-4 py-2 text-sm">
@@ -80,7 +80,7 @@ export function GlobalKpiChart({ timeline }: { timeline: ExperimentTimeSeriesPoi
             <div>
               <p className="font-semibold">Pas encore de courbe exploitable</p>
               <p className="mt-2 text-sm text-muted-foreground">
-                Aucun evenement de trafic n'a ete agrege pour cette periode. Si tu as deja visite la boutique, verifie que le snippet et le custom pixel utilisent bien le project ID de ce site.
+                Aucun événement de trafic n'a été agrégé pour cette période. Si tu as déjà visité la boutique, vérifie que le snippet et le custom pixel utilisent bien le project ID de ce site.
               </p>
             </div>
           </div>
