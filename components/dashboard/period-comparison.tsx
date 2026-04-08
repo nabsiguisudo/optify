@@ -38,40 +38,59 @@ function MetricDelta({
       : "bg-secondary text-secondary-foreground";
 
   return (
-    <div className="rounded-[1.5rem] border border-border bg-white p-4">
-      <p className="text-sm text-muted-foreground">{label}</p>
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-        <p className="text-2xl font-semibold">{formatMetricValue(item, asPercent)}</p>
-        <div className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm font-medium ${tone}`}>
-          <Icon className="h-4 w-4" />
+    <div className="rounded-[1.2rem] border border-border bg-[#fcfbff] p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm font-medium text-foreground">{label}</p>
+        <div className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium ${tone}`}>
+          <Icon className="h-3.5 w-3.5" />
           {formatPercent(Math.abs(item.relativeDelta))}
         </div>
       </div>
-      <p className="mt-2 text-sm text-muted-foreground">Periode precedente: {formatPreviousValue(item, asPercent)}</p>
+      <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
+        <p className="text-2xl font-semibold">{formatMetricValue(item, asPercent)}</p>
+        <p className="text-sm text-muted-foreground">Avant: {formatPreviousValue(item, asPercent)}</p>
+      </div>
     </div>
   );
 }
 
 export function PeriodComparisonCard({ comparison }: { comparison: PeriodComparison }) {
+  const metrics = [
+    { label: "Visiteurs", item: comparison.metrics.visitors },
+    { label: "Conversions", item: comparison.metrics.conversions },
+    { label: "Chiffre d'affaires", item: comparison.metrics.revenue },
+    { label: "Ajouts au panier", item: comparison.metrics.addToCart },
+    { label: "CTR des recos", item: comparison.metrics.recommendationCtr, asPercent: true }
+  ];
+
+  const hasData = metrics.some(({ item }) => item.current > 0 || item.previous > 0);
+
   return (
     <Card className="bg-white">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-lg font-semibold">Comparaison de periode</p>
-          <p className="mt-1 text-sm text-muted-foreground">Pour voir si le trafic et le commerce montent, stagnent ou ralentissent.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Pour voir rapidement si le trafic et le commerce progressent par rapport a la periode precedente.</p>
         </div>
         <div className="rounded-full bg-secondary px-4 py-2 text-sm">
           Periode observee vs periode precedente
         </div>
       </div>
 
-      <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-        <MetricDelta label="Visiteurs" item={comparison.metrics.visitors} />
-        <MetricDelta label="Conversions" item={comparison.metrics.conversions} />
-        <MetricDelta label="Chiffre d'affaires" item={comparison.metrics.revenue} />
-        <MetricDelta label="Ajouts au panier" item={comparison.metrics.addToCart} />
-        <MetricDelta label="CTR des recos" item={comparison.metrics.recommendationCtr} asPercent />
-      </div>
+      {hasData ? (
+        <div className="mt-5 grid gap-3 md:grid-cols-2">
+          {metrics.map((metric) => (
+            <MetricDelta key={metric.label} label={metric.label} item={metric.item} asPercent={metric.asPercent} />
+          ))}
+        </div>
+      ) : (
+        <div className="mt-5 rounded-[1.4rem] border border-dashed border-border bg-secondary/30 px-5 py-6">
+          <p className="font-semibold">Pas encore de comparaison exploitable</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Optify ne voit pas encore assez d'evenements pour comparer deux periodes. Si tu as deja navigue sur la boutique, le snippet ou le pixel pointe peut-etre vers un autre projet.
+          </p>
+        </div>
+      )}
     </Card>
   );
 }

@@ -76,8 +76,13 @@ export function GlobalKpiChart({ timeline }: { timeline: ExperimentTimeSeriesPoi
             </LineChart>
           </ResponsiveContainer>
         ) : (
-          <div className="flex h-full items-center justify-center rounded-[1.5rem] border border-dashed border-border bg-secondary/35 text-sm text-muted-foreground">
-            Pas encore assez de donnees pour afficher une courbe utile.
+          <div className="flex h-full items-center justify-center rounded-[1.5rem] border border-dashed border-border bg-secondary/35 p-8 text-center">
+            <div>
+              <p className="font-semibold">Pas encore de courbe exploitable</p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Aucun evenement de trafic n'a ete agrege pour cette periode. Si tu as deja visite la boutique, verifie que le snippet et le custom pixel utilisent bien le project ID de ce site.
+              </p>
+            </div>
           </div>
         )}
       </div>

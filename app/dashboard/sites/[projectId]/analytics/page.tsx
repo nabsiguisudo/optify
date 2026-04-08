@@ -49,6 +49,13 @@ export default async function SiteAnalyticsPage({
     runningExperiment ? getExperimentStats(runningExperiment.id) : Promise.resolve(undefined),
     getProjectBehaviorInsights(projectId)
   ]);
+  const hasAnalyticsData = analytics.timeline.some((point) => (
+    point.sessions > 0 ||
+    point.visitors > 0 ||
+    point.pageViews > 0 ||
+    point.addToCart > 0 ||
+    point.purchases > 0
+  ));
 
   return (
     <div className="space-y-6">
@@ -73,6 +80,15 @@ export default async function SiteAnalyticsPage({
           <DashboardKpiCard label={copy.common.purchases} value={formatDashboardNumber(analytics.kpis.purchases, locale)} hint={formatDashboardCurrency(Math.round(analytics.kpis.revenue), locale)} />
         </DashboardKpiGrid>
       </DashboardSection>
+
+      {!hasAnalyticsData ? (
+        <DashboardSection title="Pourquoi tout est a zero ?" description="Un etat vide explicite est plus utile qu'un faux dashboard.">
+          <DashboardEmpty
+            title="Aucune donnee analytics pour ce projet"
+            body="Si tu as deja fait des visites ou des ajouts au panier, le cas le plus probable est que la boutique envoie encore vers un ancien project ID. Reprends les snippets de la page Installation de ce projet, recolles-les dans Shopify, puis recharge la boutique."
+          />
+        </DashboardSection>
+      ) : null}
 
       <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
         <GlobalKpiChart timeline={analytics.timeline} />
