@@ -6,6 +6,11 @@ import { insertDevEvent, readDevStore } from "@/lib/dev-store";
 import { createSupabaseAdminClient } from "@/lib/supabase";
 import { hasSupabaseEnv } from "@/lib/env";
 
+function normalizeUuid(value?: string | null) {
+  if (!value) return randomUUID();
+  return z.string().uuid().safeParse(value).success ? value : randomUUID();
+}
+
 const jsonValueSchema: z.ZodTypeAny = z.lazy(() => z.union([
   z.string(),
   z.number(),
@@ -101,7 +106,7 @@ export async function POST(request: Request) {
     return experimentId;
   };
   const rows = events.map((payload) => ({
-    id: payload.clientEventId ?? randomUUID(),
+    id: normalizeUuid(payload.clientEventId),
     project_id: payload.projectId,
     anonymous_id: payload.anonymousId,
     session_id: payload.sessionId ?? null,

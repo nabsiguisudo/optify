@@ -6,6 +6,11 @@ import { insertDevEvent, readDevStore } from "@/lib/dev-store";
 import { createSupabaseAdminClient } from "@/lib/supabase";
 import { hasSupabaseEnv } from "@/lib/env";
 
+function normalizeUuid(value?: string | null) {
+  if (!value) return randomUUID();
+  return z.string().uuid().safeParse(value).success ? value : randomUUID();
+}
+
 const shopifyPixelSchema = z.object({
   projectId: z.string().min(1),
   eventName: z.string().min(1),
@@ -88,7 +93,7 @@ export async function POST(request: Request) {
     if (hasSupabaseEnv()) {
       const supabase = createSupabaseAdminClient();
       const { error } = await supabase.from("events").upsert({
-        id: payload.id ?? randomUUID(),
+        id: normalizeUuid(payload.id),
         project_id: payload.projectId,
         anonymous_id: payload.clientId ?? "shopify_customer",
         session_id: typeof context.session?.id === "string" ? context.session.id : null,
