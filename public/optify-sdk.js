@@ -36,8 +36,11 @@
     lastRecordingFlushAt: null,
     lastError: null,
     assignments: {},
-    activeExperiments: []
+    activeExperiments: [],
+    experimentDetails: {}
   };
+  var forcedExperimentId = runtimeUrl.searchParams.get("optify_experiment") || "";
+  var forcedVariantKey = runtimeUrl.searchParams.get("optify_variant") || "";
 
   function safeJsonParse(value, fallback) {
     try {
@@ -164,10 +167,60 @@
     return pathname.indexOf(pattern) !== -1;
   }
 
-  function applyChanges(changes) {
+  function getFallbackSelectors(selector) {
+    var normalized = String(selector || "").toLowerCase();
+    var fallbacks = [];
+    var looksLikeAtc =
+      normalized.indexOf("add-to-cart") !== -1 ||
+      normalized.indexOf("/cart/add") !== -1 ||
+      normalized.indexOf("productsubmitbutton") !== -1 ||
+      normalized.indexOf("[name='add']") !== -1 ||
+      normalized.indexOf('[name="add"]') !== -1 ||
+      normalized.indexOf("[data-add-to-cart]") !== -1;
+
+    if (looksLikeAtc || inferShopifyPageType() === "product") {
+      fallbacks = [
+        "form[action*='/cart/add'] [type='submit']",
+        "product-form [type='submit']",
+        "button[name='add']",
+        "button[id*='ProductSubmitButton']",
+        ".product-form__submit",
+        "[data-add-to-cart]",
+        "[data-product-form] [type='submit']"
+      ];
+    }
+
+    return [selector].concat(fallbacks).filter(function (value, index, list) {
+      return value && list.indexOf(value) === index;
+    });
+  }
+
+  function resolveChangeTargets(change) {
+    var selectors = getFallbackSelectors(change.selector);
+    for (var index = 0; index < selectors.length; index += 1) {
+      try {
+        var elements = document.querySelectorAll(selectors[index]);
+        if (elements && elements.length) {
+          return {
+            selector: selectors[index],
+            elements: elements
+          };
+        }
+      } catch (error) {}
+    }
+
+    return {
+      selector: change.selector,
+      elements: []
+    };
+  }
+
+  function applyChanges(changes, experimentId, variantKey) {
+    var appliedCount = 0;
+    var matchedSelectors = [];
     changes.forEach(function (change) {
-      var elements = document.querySelectorAll(change.selector);
-      elements.forEach(function (element) {
+      var resolution = resolveChangeTargets(change);
+      Array.prototype.forEach.call(resolution.elements, function (element) {
         if (change.type === "text" || change.type === "cta") {
           element.textContent = change.value;
         }
@@ -177,8 +230,21 @@
         if (change.type === "style") {
           element.style.cssText += change.value;
         }
+        appliedCount += 1;
+      });
+      matchedSelectors.push({
+        requested: change.selector,
+        matched: resolution.selector,
+        count: resolution.elements.length
       });
     });
+    if (experimentId) {
+      debugState.experimentDetails[experimentId] = debugState.experimentDetails[experimentId] || {};
+      debugState.experimentDetails[experimentId].variantKey = variantKey || null;
+      debugState.experimentDetails[experimentId].matchedSelectors = matchedSelectors;
+      debugState.experimentDetails[experimentId].appliedCount = appliedCount;
+    }
+    return appliedCount;
   }
 
   function applyCustomCode(code) {
@@ -1234,12 +1300,24 @@
       });
 
       activeExperiments.forEach(function (experiment) {
-        if (!isUserInExperiment(experiment.id, experiment.trafficSplit, getAnonymousId())) {
+        var isForcedExperiment = forcedExperimentId && forcedExperimentId === experiment.id;
+        if (!isForcedExperiment && !isUserInExperiment(experiment.id, experiment.trafficSplit, getAnonymousId())) {
+          debugState.experimentDetails[experiment.id] = {
+            variantKey: null,
+            inTraffic: false,
+            forced: false,
+            matchedSelectors: [],
+            appliedCount: 0
+          };
           return;
         }
 
         var assigned = assignments[experiment.id];
-        if (!assigned) {
+        if (isForcedExperiment && forcedVariantKey) {
+          assigned = forcedVariantKey;
+          assignments[experiment.id] = assigned;
+          saveAssignments(assignments);
+        } else if (!assigned) {
           assigned = pickVariant(experiment.variants, getAnonymousId() + ":" + experiment.id).key;
           assignments[experiment.id] = assigned;
           saveAssignments(assignments);
@@ -1250,7 +1328,15 @@
         });
         if (!variant) return;
 
-        applyChanges(variant.changes || []);
+        debugState.experimentDetails[experiment.id] = {
+          variantKey: variant.key,
+          inTraffic: true,
+          forced: !!isForcedExperiment,
+          matchedSelectors: [],
+          appliedCount: 0
+        };
+
+        applyChanges(variant.changes || [], experiment.id, variant.key);
         if (variant.key !== "A") {
           applyCustomCode(experiment.customCode);
         }
