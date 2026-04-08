@@ -291,10 +291,25 @@ export async function getInstallationDiagnostic(projectId: string): Promise<Inst
     };
   }
 
-  const experiments = await getExperimentsByProject(projectId);
-  const stats = (await Promise.all(experiments.map((experiment) => getExperimentStats(experiment.id)))).filter(Boolean) as ExperimentStats[];
-  const recentEventCount = stats.reduce((sum, item) => sum + item.kpis.pageViews + item.kpis.clicks + item.kpis.conversions, 0);
-  const recentPages = [...new Set(experiments.map((experiment) => experiment.pagePattern))].slice(0, 6);
+  const [experiments, projectEvents] = await Promise.all([
+    getExperimentsByProject(projectId),
+    getProjectEvents(projectId)
+  ]);
+  const recentEvents = [...projectEvents].sort((a, b) => b.timestamp.localeCompare(a.timestamp)).slice(0, 24);
+  const recentEventCount = projectEvents.length;
+  const recentPages = [...new Set([
+    ...recentEvents.map((event) => event.pathname),
+    ...experiments.map((experiment) => experiment.pagePattern)
+  ])].slice(0, 6);
+  const liveEventTypes = Object.entries(
+    recentEvents.reduce<Record<string, number>>((acc, event) => {
+      acc[event.eventType] = (acc[event.eventType] ?? 0) + 1;
+      return acc;
+    }, {})
+  )
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6)
+    .map(([type, count]) => ({ type: type as EventRecord["eventType"], count }));
   const checks: InstallationDiagnostic["checks"] = [
     {
       key: "sdk_config",
@@ -312,7 +327,7 @@ export async function getInstallationDiagnostic(projectId: string): Promise<Inst
       key: "event_flow",
       label: "Event collection",
       status: recentEventCount > 0 ? "pass" : "warn",
-      detail: recentEventCount > 0 ? "Tracked events are present in the analytics layer." : "No tracked events found in the current analytics layer."
+      detail: recentEventCount > 0 ? `${recentEventCount} events recents sont presents pour ce projet.` : "No tracked events found in the current analytics layer."
     }
   ];
 
@@ -324,7 +339,7 @@ export async function getInstallationDiagnostic(projectId: string): Promise<Inst
     checks,
     recentPages,
     recentEventCount,
-    liveEventTypes: []
+    liveEventTypes
   };
 }
 
@@ -457,6 +472,10 @@ export async function getSdkDiagnostics(projectId: string): Promise<SdkDiagnosti
     };
   }
 
+  const recentEvents = (await getProjectEvents(projectId))
+    .sort((a, b) => b.timestamp.localeCompare(a.timestamp))
+    .slice(0, 12);
+
   return {
     projectId,
     status: diagnostic.status,
@@ -464,10 +483,10 @@ export async function getSdkDiagnostics(projectId: string): Promise<SdkDiagnosti
       recentEventCount: diagnostic.recentEventCount,
       duplicateRate: 0,
       errorRate: 0,
-      lastEventAt: diagnostic.latestHealth?.loadedAt
+      lastEventAt: recentEvents[0]?.timestamp ?? diagnostic.latestHealth?.loadedAt
     },
     eventTypes: diagnostic.liveEventTypes ?? [],
-    recentEvents: [],
+    recentEvents,
     latestHealth: diagnostic.latestHealth
   };
 }
