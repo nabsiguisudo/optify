@@ -65,6 +65,8 @@ export type TargetingAttribute =
   | "query_string"
   | "visitor_type"
   | "pages_in_session"
+  | "day_of_week"
+  | "hour_of_day"
   | "viewport_width"
   | "viewport_height";
 export type TargetingOperator =

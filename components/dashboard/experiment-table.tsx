@@ -21,8 +21,8 @@ export function ExperimentTable({
     <Card className="bg-white">
       <div className="mb-5 flex items-center justify-between gap-4">
         <div>
-          <p className="text-lg font-semibold">Experiences du site</p>
-          <p className="text-sm text-muted-foreground">Une liste plus simple a lire: nom, statut, page cible et meilleur taux de conversion observe.</p>
+          <p className="text-lg font-semibold">Portefeuille d'experiences</p>
+          <p className="text-sm text-muted-foreground">Une lecture plus proche d'un hub d'activation: type, page, trafic enrôle, métrique et état.</p>
         </div>
         <Badge>{experiments.length} total</Badge>
       </div>
@@ -30,16 +30,25 @@ export function ExperimentTable({
         {experiments.map((experiment) => {
           const stats = statsByExperiment[experiment.id];
           return (
-            <div key={experiment.id} className="grid gap-4 rounded-3xl border border-border p-4 lg:grid-cols-[1.4fr_0.8fr_0.8fr_0.7fr]">
+            <div key={experiment.id} className="grid gap-4 rounded-3xl border border-border p-4 lg:grid-cols-[1.2fr_0.7fr_0.8fr_0.8fr_0.7fr]">
               <div>
                 <p className="font-semibold">{experiment.name}</p>
-                <p className="text-sm text-muted-foreground">{experiment.pagePattern}</p>
+                <p className="mt-1 text-sm text-muted-foreground">{experiment.pagePattern}</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Badge>{experiment.type ?? experiment.editorMode ?? "visual"}</Badge>
+                  <Badge>{experiment.trafficSplit}% traffic</Badge>
+                </div>
               </div>
               <div>
                 <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">{t.common.status}</p>
                 <Badge className={experiment.status === "running" ? "mt-2 bg-primary text-white" : "mt-2"}>
                   {localizeStatus(experiment.status, currentLocale)}
                 </Badge>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Metrique</p>
+                <p className="mt-2 text-sm font-medium">{experiment.primaryMetric.replaceAll("_", " ")}</p>
+                <p className="text-sm text-muted-foreground">{stats?.kpis.uniqueVisitors ?? 0} visiteurs</p>
               </div>
               <div>
                 <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Lecture</p>

@@ -150,6 +150,14 @@
     return variants[0];
   }
 
+  function isUserInExperiment(experimentId, trafficSplit, seed) {
+    var normalizedSplit = Math.max(0, Math.min(100, Number(trafficSplit || 100)));
+    if (normalizedSplit >= 100) return true;
+    if (normalizedSplit <= 0) return false;
+    var bucket = simpleHash(seed + ":" + experimentId + ":traffic") % 100;
+    return bucket < normalizedSplit;
+  }
+
   function matchesPattern(pattern, pathname) {
     if (pattern === pathname) return true;
     if (pattern.slice(-1) === "*") return pathname.indexOf(pattern.slice(0, -1)) === 0;
@@ -1141,6 +1149,8 @@
     if (attribute === "query_string") return context.queryString || "";
     if (attribute === "visitor_type") return context.visitorType || "";
     if (attribute === "pages_in_session") return context.pagesInSession || 0;
+    if (attribute === "day_of_week") return new Date().getDay();
+    if (attribute === "hour_of_day") return new Date().getHours();
     if (attribute === "viewport_width") return context.viewportWidth || 0;
     if (attribute === "viewport_height") return context.viewportHeight || 0;
     return "";
@@ -1224,6 +1234,10 @@
       });
 
       activeExperiments.forEach(function (experiment) {
+        if (!isUserInExperiment(experiment.id, experiment.trafficSplit, getAnonymousId())) {
+          return;
+        }
+
         var assigned = assignments[experiment.id];
         if (!assigned) {
           assigned = pickVariant(experiment.variants, getAnonymousId() + ":" + experiment.id).key;
