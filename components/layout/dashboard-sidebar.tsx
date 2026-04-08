@@ -76,10 +76,10 @@ export function DashboardSidebar({
   ] : [];
 
   return (
-    <aside className="border-r border-border bg-[#fcfcfa] p-5 lg:p-6">
+    <aside className="border-r border-white/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.92)_0%,rgba(246,246,255,0.94)_100%)] p-5 backdrop-blur-xl lg:p-6">
       <div className="sticky top-0 space-y-6">
         <Link href={currentProject ? withQuery(`/dashboard/sites/${currentProject.id}/overview`) : "/dashboard"} className="flex items-center gap-3">
-          <div className="rounded-2xl bg-primary p-3 text-primary-foreground">
+          <div className="rounded-2xl bg-[linear-gradient(135deg,#ff5864_0%,#ff7b6b_48%,#ffb36a_100%)] p-3 text-primary-foreground shadow-glow">
             <ShoppingBag className="h-5 w-5" />
           </div>
           <div className="min-w-0">
@@ -88,7 +88,7 @@ export function DashboardSidebar({
           </div>
         </Link>
 
-        <details className="rounded-[1.25rem] border border-border bg-white p-4" open>
+        <details className="rounded-[1.4rem] border border-white/70 bg-white/80 p-4 shadow-[0_12px_30px_rgba(91,86,132,0.06)]" open>
           <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
             <div className="min-w-0">
               <p className="text-xs font-medium text-muted-foreground">Current site</p>
@@ -104,7 +104,7 @@ export function DashboardSidebar({
                 href={withQuery(buildHref(pathname, project.id))}
                 className={cn(
                   "block rounded-2xl border px-3 py-3 transition",
-                  project.id === currentProject?.id ? "border-primary/20 bg-primary/5" : "border-transparent hover:border-border hover:bg-secondary/40"
+                  project.id === currentProject?.id ? "border-transparent bg-[linear-gradient(135deg,rgba(255,88,100,0.12)_0%,rgba(255,179,106,0.12)_100%)]" : "border-transparent hover:border-border hover:bg-secondary/60"
                 )}
               >
                 <div className="flex items-center justify-between gap-3">
@@ -138,7 +138,7 @@ export function DashboardSidebar({
                       href={withQuery(item.href)}
                       className={cn(
                         "flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm transition",
-                        active ? "bg-primary text-white" : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                        active ? "bg-[linear-gradient(135deg,#ff5864_0%,#ff7f67_54%,#ffb86b_100%)] text-white shadow-glow" : "text-muted-foreground hover:bg-white hover:text-foreground"
                       )}
                     >
                       <Icon className="h-4 w-4" />
@@ -165,10 +165,10 @@ export function DashboardSidebar({
           </div>
         </nav>
 
-        <div className="rounded-[1.25rem] border border-border bg-white p-4">
+        <div className="rounded-[1.4rem] border border-white/70 bg-white/80 p-4 shadow-[0_12px_30px_rgba(91,86,132,0.06)]">
           <p className="text-sm font-semibold">{user.fullName}</p>
           <p className="mt-1 text-sm text-muted-foreground">{user.email}</p>
-          <Badge className="mt-3 bg-primary/10 text-primary">{proTrial}</Badge>
+          <Badge className="mt-3 bg-[linear-gradient(135deg,rgba(255,88,100,0.12)_0%,rgba(255,179,106,0.16)_100%)] text-[#d64056]">{proTrial}</Badge>
           <div className="mt-4">
             <LanguageSwitcher />
           </div>

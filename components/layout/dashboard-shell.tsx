@@ -11,7 +11,7 @@ export async function DashboardShell({ children }: { children: React.ReactNode }
   const t = getDictionary(locale);
 
   return (
-    <div className="min-h-screen bg-[#f7f7f4] text-foreground">
+    <div className="min-h-screen bg-transparent text-foreground">
       <div className="grid min-h-screen lg:grid-cols-[280px_1fr]">
         <DashboardSidebar
           user={user}
@@ -21,7 +21,7 @@ export async function DashboardShell({ children }: { children: React.ReactNode }
           experimentOs={t.common.experimentOs}
           proTrial={t.common.proTrial}
         />
-        <main className="min-w-0 p-6 lg:p-8">
+        <main className="min-w-0 p-5 lg:p-8">
           <div className="mx-auto w-full max-w-7xl">{children}</div>
         </main>
       </div>

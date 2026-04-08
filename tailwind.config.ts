@@ -32,14 +32,14 @@ const config: Config = {
         sm: "calc(var(--radius) - 4px)"
       },
       boxShadow: {
-        glow: "0 18px 60px rgba(26, 56, 42, 0.14)"
+        glow: "0 18px 54px rgba(255, 87, 102, 0.16)"
       },
       fontFamily: {
         sans: ["var(--font-sans)", "ui-sans-serif", "system-ui"],
         display: ["var(--font-display)", "ui-serif", "Georgia"]
       },
       backgroundImage: {
-        mesh: "radial-gradient(circle at top, rgba(248, 201, 122, 0.18), transparent 28%), radial-gradient(circle at bottom right, rgba(19, 92, 67, 0.18), transparent 32%)"
+        mesh: "radial-gradient(circle at top left, rgba(255, 88, 100, 0.16), transparent 28%), radial-gradient(circle at bottom right, rgba(255, 154, 80, 0.16), transparent 32%)"
       }
     }
   },

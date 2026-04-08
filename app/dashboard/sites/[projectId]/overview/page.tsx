@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowRight, Bot, Clapperboard, Rocket } from "lucide-react";
+import { ArrowRight, Bot, Clapperboard, MousePointerClick, Rocket, ShoppingCart, TrendingUp, Workflow } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -34,60 +34,121 @@ export default async function SiteOverviewPage({
   ]);
 
   const topOpportunity = aiCopilot[0];
+  const topPage = behavior.topPages[0];
+  const topInteraction = behavior.topInteractions[0];
+  const trafficSummary = [
+    { label: "Sessions", value: formatNumber(analytics.kpis.sessions), note: `${formatNumber(behavior.totals.trackedPages)} tracked pages`, icon: TrendingUp },
+    { label: "Page views", value: formatNumber(analytics.kpis.pageViews), note: `${formatPercent(analytics.kpis.bounceRate)} bounce rate`, icon: Workflow },
+    { label: "Add to carts", value: formatNumber(analytics.kpis.addToCart), note: `${formatPercent(analytics.kpis.uniqueVisitors === 0 ? 0 : analytics.kpis.addToCart / analytics.kpis.uniqueVisitors)} ATC / visitor`, icon: ShoppingCart },
+    { label: "Tracked clicks", value: formatNumber(behavior.totals.trackedClicks), note: `${formatNumber(behavior.totals.conversionSessions)} converting sessions`, icon: MousePointerClick }
+  ];
 
   return (
     <div className="space-y-6">
-      <Card className="bg-white">
-        <div className="flex flex-wrap items-start justify-between gap-4">
+      <Card className="overflow-hidden border-0 bg-[linear-gradient(135deg,#201d35_0%,#2a2347_42%,#ff5864_95%,#ffb36a_140%)] text-white shadow-[0_28px_90px_rgba(58,43,95,0.24)]">
+        <div className="flex flex-wrap items-start justify-between gap-5">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <Badge>{project.platform}</Badge>
-              <Badge>{project.domain}</Badge>
-              <Badge className="bg-primary/10 text-primary">Dynamic Yield + FullStory + AI</Badge>
+              <Badge className="bg-white/12 text-white">{project.platform}</Badge>
+              <Badge className="bg-white/12 text-white">{project.domain}</Badge>
+              <Badge className="bg-white/12 text-white">Observe + Decide + Act</Badge>
             </div>
-            <h1 className="mt-4 text-3xl font-semibold tracking-tight">{project.name}</h1>
-            <p className="mt-3 max-w-4xl text-sm text-muted-foreground">
-              Optify observes what users really do, decides what should change with AI, and helps launch experiments or features without jumping between separate tools.
+            <h1 className="mt-5 text-4xl font-semibold tracking-tight">{project.name}</h1>
+            <p className="mt-3 max-w-3xl text-sm text-white/78">
+              A clear command center for your store traffic: what people visit, where they click, what adds to cart, and what Optify thinks you should ship next.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
-            <Button asChild>
+            <Button asChild className="bg-white text-[#2a2347] hover:bg-white/90">
               <Link href={withLang(`/dashboard/sites/${projectId}/ai`, locale)}>Open AI copilot</Link>
             </Button>
-            <Button asChild variant="outline">
+            <Button asChild variant="outline" className="border-white/20 bg-white/10 text-white hover:bg-white/16">
               <Link href={withLang(`/dashboard/sites/${projectId}/experiments`, locale)}>Open experiments</Link>
             </Button>
           </div>
         </div>
+        <div className="mt-8 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {trafficSummary.map((item) => {
+            const Icon = item.icon;
+            return (
+              <div key={item.label} className="rounded-[1.5rem] border border-white/12 bg-white/10 p-4 backdrop-blur-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm text-white/72">{item.label}</p>
+                  <Icon className="h-4 w-4 text-white/72" />
+                </div>
+                <p className="mt-3 text-3xl font-semibold">{item.value}</p>
+                <p className="mt-2 text-sm text-white/72">{item.note}</p>
+              </div>
+            );
+          })}
+        </div>
       </Card>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Card className="bg-white">
-          <p className="text-sm text-muted-foreground">Observe</p>
-          <p className="mt-2 text-3xl font-semibold">{formatNumber(behavior.totals.sessions || analytics.kpis.sessions)}</p>
-          <p className="mt-2 text-sm text-muted-foreground">Sessions captured across analytics, replay and heatmaps.</p>
+      <div className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+        <Card className="bg-[linear-gradient(180deg,#ffffff_0%,#f8f7ff_100%)]">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-lg font-semibold">Traffic overview</p>
+              <p className="mt-1 text-sm text-muted-foreground">The fastest read on what is happening on the store right now.</p>
+            </div>
+            <Button asChild variant="outline">
+              <Link href={withLang(`/dashboard/sites/${projectId}/analytics`, locale)}>Open analytics</Link>
+            </Button>
+          </div>
+          <div className="mt-5 grid gap-3 md:grid-cols-2">
+            <div className="rounded-[1.4rem] border border-border bg-white p-4">
+              <p className="text-sm text-muted-foreground">Best-performing page</p>
+              <p className="mt-2 text-lg font-semibold">{topPage?.pathname ?? "No page yet"}</p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {topPage ? `${formatNumber(topPage.visits)} visits, ${formatNumber(topPage.clicks)} clicks, ${formatNumber(topPage.addToCart)} add to carts` : "Traffic will appear here as soon as the first visits are captured."}
+              </p>
+            </div>
+            <div className="rounded-[1.4rem] border border-border bg-white p-4">
+              <p className="text-sm text-muted-foreground">Top interaction</p>
+              <p className="mt-2 text-lg font-semibold">{topInteraction?.label ?? "No interaction yet"}</p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {topInteraction ? `${formatNumber(topInteraction.totalClicks)} clicks on ${topInteraction.pathname} for ${topInteraction.goal}` : "Optify will surface the most-clicked area here."}
+              </p>
+            </div>
+            <div className="rounded-[1.4rem] border border-border bg-white p-4">
+              <p className="text-sm text-muted-foreground">Revenue tracked</p>
+              <p className="mt-2 text-2xl font-semibold">${formatNumber(Math.round(analytics.kpis.revenue))}</p>
+              <p className="mt-2 text-sm text-muted-foreground">Cumulative purchase value seen by Optify.</p>
+            </div>
+            <div className="rounded-[1.4rem] border border-border bg-white p-4">
+              <p className="text-sm text-muted-foreground">Launch pressure</p>
+              <p className="mt-2 text-2xl font-semibold">{formatNumber(launchCenter.counts.running + launchCenter.counts.approved + launchCenter.counts.scheduled)}</p>
+              <p className="mt-2 text-sm text-muted-foreground">Experiences already running or ready to go live.</p>
+            </div>
+          </div>
         </Card>
-        <Card className="bg-white">
-          <p className="text-sm text-muted-foreground">Decide</p>
-          <p className="mt-2 text-3xl font-semibold">{formatNumber(aiQueue.ready)}</p>
-          <p className="mt-2 text-sm text-muted-foreground">AI recommendations ready for review right now.</p>
-        </Card>
-        <Card className="bg-white">
-          <p className="text-sm text-muted-foreground">Act</p>
-          <p className="mt-2 text-3xl font-semibold">{formatNumber(launchCenter.counts.running + launchCenter.counts.scheduled + launchCenter.counts.approved)}</p>
-          <p className="mt-2 text-sm text-muted-foreground">Experiments and launches already moving through execution.</p>
-        </Card>
-        <Card className="bg-white">
-          <p className="text-sm text-muted-foreground">Onboarding</p>
-          <p className="mt-2 text-3xl font-semibold">{Math.round((onboarding?.completionRatio ?? 0) * 100)}%</p>
-          <p className="mt-2 text-sm text-muted-foreground">{onboarding?.currentStepLabel ?? "Install this site to begin."}</p>
+
+        <Card className="bg-[linear-gradient(180deg,#fff7f7_0%,#ffffff_100%)]">
+          <p className="text-lg font-semibold">What needs attention</p>
+          <div className="mt-5 space-y-3">
+            <div className="rounded-[1.4rem] border border-[#ffd8dd] bg-white p-4">
+              <p className="text-sm text-muted-foreground">AI queue</p>
+              <p className="mt-2 text-2xl font-semibold">{formatNumber(aiQueue.ready)}</p>
+              <p className="mt-2 text-sm text-muted-foreground">Recommendations ready to review right now.</p>
+            </div>
+            <div className="rounded-[1.4rem] border border-border bg-white p-4">
+              <p className="text-sm text-muted-foreground">Replays captured</p>
+              <p className="mt-2 text-2xl font-semibold">{formatNumber(sessions.length)}</p>
+              <p className="mt-2 text-sm text-muted-foreground">Sessions available in replay and diagnostics.</p>
+            </div>
+            <div className="rounded-[1.4rem] border border-border bg-white p-4">
+              <p className="text-sm text-muted-foreground">Onboarding state</p>
+              <p className="mt-2 text-lg font-semibold">{Math.round((onboarding?.completionRatio ?? 0) * 100)}% complete</p>
+              <p className="mt-2 text-sm text-muted-foreground">{onboarding?.currentStepLabel ?? "Install this site to begin."}</p>
+            </div>
+          </div>
         </Card>
       </div>
 
       <div className="grid gap-4 xl:grid-cols-3">
         <Card className="bg-white">
           <div className="flex items-center gap-3">
-            <div className="rounded-2xl bg-secondary p-3">
+            <div className="rounded-2xl bg-[linear-gradient(135deg,rgba(255,88,100,0.12)_0%,rgba(255,179,106,0.18)_100%)] p-3">
               <Clapperboard className="h-5 w-5" />
             </div>
             <div>
@@ -107,7 +168,7 @@ export default async function SiteOverviewPage({
 
         <Card className="bg-white">
           <div className="flex items-center gap-3">
-            <div className="rounded-2xl bg-secondary p-3">
+            <div className="rounded-2xl bg-[linear-gradient(135deg,rgba(255,88,100,0.12)_0%,rgba(255,179,106,0.18)_100%)] p-3">
               <Bot className="h-5 w-5" />
             </div>
             <div>
@@ -136,7 +197,7 @@ export default async function SiteOverviewPage({
 
         <Card className="bg-white">
           <div className="flex items-center gap-3">
-            <div className="rounded-2xl bg-secondary p-3">
+            <div className="rounded-2xl bg-[linear-gradient(135deg,rgba(255,88,100,0.12)_0%,rgba(255,179,106,0.18)_100%)] p-3">
               <Rocket className="h-5 w-5" />
             </div>
             <div>
@@ -184,24 +245,23 @@ export default async function SiteOverviewPage({
 
         <Card className="bg-white">
           <div className="flex items-center justify-between gap-3">
-            <p className="text-lg font-semibold">Current business pulse</p>
+            <p className="text-lg font-semibold">Top pages and actions</p>
             <Button asChild variant="outline">
               <Link href={withLang(`/dashboard/sites/${projectId}/analytics`, locale)}>Open analytics</Link>
             </Button>
           </div>
-          <div className="mt-5 grid gap-3">
-            <div className="rounded-2xl border border-border p-4">
-              <p className="text-sm text-muted-foreground">Revenue tracked</p>
-              <p className="mt-2 text-2xl font-semibold">${formatNumber(Math.round(analytics.kpis.revenue))}</p>
-            </div>
-            <div className="rounded-2xl border border-border p-4">
-              <p className="text-sm text-muted-foreground">Add to cart rate</p>
-              <p className="mt-2 text-2xl font-semibold">{formatPercent(analytics.kpis.uniqueVisitors === 0 ? 0 : analytics.kpis.addToCart / analytics.kpis.uniqueVisitors)}</p>
-            </div>
-            <div className="rounded-2xl border border-border p-4">
-              <p className="text-sm text-muted-foreground">Revenue uplift identified</p>
-              <p className="mt-2 text-2xl font-semibold">${formatNumber(Math.round(analytics.businessImpact.cumulativeRevenueUplift))}</p>
-            </div>
+          <div className="mt-5 space-y-3">
+            {behavior.topPages.slice(0, 4).map((page) => (
+              <div key={page.pathname} className="rounded-2xl border border-border p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold">{page.pathname}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">{formatNumber(page.visits)} visits · {formatNumber(page.clicks)} clicks · {formatNumber(page.addToCart)} add to carts</p>
+                  </div>
+                  <Badge>{page.conversions} conv.</Badge>
+                </div>
+              </div>
+            ))}
             {runningExperiment && runningStats ? (
               <div className="rounded-2xl border border-border p-4">
                 <p className="text-sm text-muted-foreground">Live experiment</p>
