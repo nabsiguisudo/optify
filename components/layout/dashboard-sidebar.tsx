@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Activity, Bot, ChartColumnBig, ChevronDown, Clapperboard, CreditCard, LayoutPanelLeft, Rocket, Settings2, ShoppingBag, Wrench } from "lucide-react";
+import { Activity, Bot, ChartColumnBig, ChevronDown, Clapperboard, CreditCard, LayoutPanelLeft, Rocket, Settings2, ShoppingBag, SlidersHorizontal, Wrench } from "lucide-react";
 import { DeleteProjectButton } from "@/components/forms/delete-project-button";
 import { Badge } from "@/components/ui/badge";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
@@ -49,28 +49,19 @@ export function DashboardSidebar({
 
   const groups = currentProject ? [
     {
-      label: copy.nav.command,
+      label: copy.nav.analyticsSuite,
       items: [
-        { href: `/dashboard/sites/${currentProject.id}/overview`, label: copy.nav.overview, icon: LayoutPanelLeft, key: "overview" }
-      ]
-    },
-    {
-      label: copy.nav.observe,
-      items: [
+        { href: `/dashboard/sites/${currentProject.id}/overview`, label: copy.nav.overview, icon: LayoutPanelLeft, key: "overview" },
         { href: `/dashboard/sites/${currentProject.id}/analytics`, label: copy.nav.analytics, icon: ChartColumnBig, key: "analytics" },
         { href: `/dashboard/sites/${currentProject.id}/sessions`, label: copy.nav.sessions, icon: Clapperboard, key: "sessions" },
+        { href: `/dashboard/sites/${currentProject.id}/segments`, label: copy.nav.segments, icon: SlidersHorizontal, key: "segments" },
         { href: `/dashboard/sites/${currentProject.id}/activity`, label: copy.nav.activity, icon: Activity, key: "activity" }
       ]
     },
     {
-      label: copy.nav.decide,
+      label: copy.nav.activationSuite,
       items: [
-        { href: `/dashboard/sites/${currentProject.id}/ai`, label: copy.nav.suggestions, icon: Bot, key: "ai" }
-      ]
-    },
-    {
-      label: copy.nav.act,
-      items: [
+        { href: `/dashboard/sites/${currentProject.id}/ai`, label: copy.nav.suggestions, icon: Bot, key: "ai" },
         { href: `/dashboard/sites/${currentProject.id}/experiments`, label: copy.nav.experiments, icon: Rocket, key: "experiments" },
         { href: `/dashboard/sites/${currentProject.id}/installation`, label: copy.nav.installation, icon: Settings2, key: "installation" }
       ]

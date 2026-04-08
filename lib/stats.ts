@@ -157,7 +157,7 @@ function buildTimeline(events: EventRecord[], start: Date, end: Date): Experimen
   });
 
   return [...buckets.entries()].map(([date, dayEvents]) => {
-    const sessions = new Set(dayEvents.map((event) => event.sessionId).filter(Boolean) as string[]);
+    const sessions = new Set(dayEvents.map((event) => event.sessionId ?? `${event.anonymousId}:${date}`));
     const visitors = new Set(dayEvents.map((event) => event.anonymousId));
     return {
       date,
@@ -462,7 +462,7 @@ export function computeExperimentStats(
       sessionsByVariant.set(event.variantKey, new Set());
     }
     visitorsByVariant.get(event.variantKey)?.add(event.anonymousId);
-    if (event.sessionId) sessionsByVariant.get(event.variantKey)?.add(event.sessionId);
+    sessionsByVariant.get(event.variantKey)?.add(event.sessionId ?? `${event.anonymousId}:${toDateKey(event.timestamp)}`);
   }
 
   const pageViews = periodEvents.filter((event) => event.eventType === "page_view");
@@ -552,7 +552,7 @@ export function computeExperimentStats(
   const winnerRevenuePerVisitor = winner && winner.visitors > 0 ? winner.revenue / winner.visitors : 0;
   const estimatedRevenueUplift = Math.max(0, (winnerRevenuePerVisitor - controlRevenuePerVisitor) * (winner?.visitors ?? 0));
 
-  const sessions = new Set(periodEvents.map((event) => event.sessionId).filter(Boolean) as string[]);
+  const sessions = new Set(periodEvents.map((event) => event.sessionId ?? `${event.anonymousId}:${toDateKey(event.timestamp)}`));
   const uniqueVisitors = new Set(periodEvents.map((event) => event.anonymousId));
   const pagesPerSession = sessions.size === 0 ? 0 : pageViews.length / sessions.size;
   const durations = pageExits.map((event) => event.context?.durationMs).filter((value): value is number => typeof value === "number" && value >= 0);
@@ -560,8 +560,8 @@ export function computeExperimentStats(
   const sessionPageCount = new Map<string, number>();
 
   for (const event of pageViews) {
-    if (!event.sessionId) continue;
-    sessionPageCount.set(event.sessionId, (sessionPageCount.get(event.sessionId) ?? 0) + 1);
+    const sessionKey = event.sessionId ?? `${event.anonymousId}:${toDateKey(event.timestamp)}`;
+    sessionPageCount.set(sessionKey, (sessionPageCount.get(sessionKey) ?? 0) + 1);
   }
 
   const bounceSessions = [...sessionPageCount.values()].filter((count) => count <= 1).length;

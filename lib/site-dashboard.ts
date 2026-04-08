@@ -4,14 +4,13 @@ type Copy = {
   nav: {
     currentSite: string;
     addSite: string;
-    command: string;
-    observe: string;
-    decide: string;
-    act: string;
+    analyticsSuite: string;
+    activationSuite: string;
     workspace: string;
     overview: string;
     analytics: string;
     sessions: string;
+    segments: string;
     activity: string;
     suggestions: string;
     experiments: string;
@@ -95,6 +94,14 @@ type Copy = {
       diagnosticsDescription: string;
       noReplay: string;
     };
+    segments: {
+      title: string;
+      description: string;
+      presetsTitle: string;
+      presetsDescription: string;
+      pinnedTitle: string;
+      pinnedDescription: string;
+    };
     activity: {
       title: string;
       description: string;
@@ -151,22 +158,21 @@ const fr: Copy = {
   nav: {
     currentSite: "Site actuel",
     addSite: "Ajouter un site",
-    command: "Pilotage",
-    observe: "Observation",
-    decide: "Suggestions",
-    act: "Execution",
+    analyticsSuite: "Analyse",
+    activationSuite: "Activation",
     workspace: "Workspace",
-    overview: "Vue d'ensemble",
+    overview: "Dashboard",
     analytics: "Analytics",
     sessions: "Sessions",
-    activity: "Activite",
+    segments: "Segments",
+    activity: "Activité",
     suggestions: "Suggestions",
-    experiments: "Experiences",
+    experiments: "Expériences",
     installation: "Installation",
     shopifyHub: "Hub Shopify",
     billing: "Facturation",
-    noSite: "Aucun site selectionne",
-    createSiteHint: "Creez un site pour commencer"
+    noSite: "Aucun site sélectionné",
+    createSiteHint: "Créez un site pour commencer"
   },
   common: {
     revenue: "Revenu",
@@ -177,40 +183,40 @@ const fr: Copy = {
     checkout: "Passages en checkout",
     purchases: "Achats",
     pageViews: "Vues de page",
-    noData: "Pas encore de donnees",
-    updatedAt: "Derniere mise a jour",
+    noData: "Pas encore de données",
+    updatedAt: "Dernière mise à jour",
     currentStatus: "Statut actuel",
     copySnippet: "Copier le snippet",
-    recentActivity: "Activite recente"
+    recentActivity: "Activité récente"
   },
   pages: {
     overview: {
-      title: "Vue d'ensemble",
-      description: "Une lecture rapide du site: trafic, pages qui performent, signaux de friction, tests en cours et niveau d'installation.",
-      primaryAction: "Voir les analytics",
-      secondaryAction: "Voir les experiences",
-      summaryTitle: "Resume du site",
-      summaryDescription: "Les chiffres essentiels a lire en premier.",
+      title: "Dashboard",
+      description: "Deux espaces très lisibles : l'analyse comportementale d'un côté, l'activation et les tests de l'autre.",
+      primaryAction: "Ouvrir Analytics",
+      secondaryAction: "Ouvrir Expériences",
+      summaryTitle: "Résumé du site",
+      summaryDescription: "Les chiffres essentiels à lire en premier.",
       topPagesTitle: "Pages les plus utiles",
-      topPagesDescription: "Les pages qui generent trafic, actions et revenu.",
+      topPagesDescription: "Les pages qui génèrent trafic, actions et revenu.",
       activeTestsTitle: "Tests actifs",
-      activeTestsDescription: "Ce qui tourne maintenant et ce qui est pret a etre lance.",
+      activeTestsDescription: "Ce qui tourne maintenant et ce qui est prêt à être lancé.",
       setupTitle: "Installation et collecte",
-      setupDescription: "Etat du SDK et progression d'onboarding.",
+      setupDescription: "État du SDK et progression d'onboarding.",
       bestPage: "Meilleure page",
       bestPageEmpty: "Aucune page notable pour l'instant",
       strongestInteraction: "Interaction principale",
       strongestInteractionEmpty: "Aucune interaction saillante pour l'instant",
-      trackedRevenue: "Revenu observe",
+      trackedRevenue: "Revenu observé",
       liveTests: "Tests en cours",
       noRunningTest: "Aucun test actif",
       setupProgress: "Progression d'installation",
-      setupPending: "Installation a finaliser",
-      recentSignalsTitle: "Signaux recents",
-      recentSignalsDescription: "Ce qui vient d'etre capture sur le site.",
+      setupPending: "Installation à finaliser",
+      recentSignalsTitle: "Signaux récents",
+      recentSignalsDescription: "Ce qui vient d'être capturé sur le site.",
       recommendationsTitle: "Suggestions de tests",
-      recommendationsDescription: "Pistes a examiner avant de creer une experience.",
-      recommendationsDisclaimer: "Ces suggestions sont presentees comme des opportunites produit. Elles ne doivent pas etre vendues comme une analyse IA si aucun moteur IA n'est branche."
+      recommendationsDescription: "Pistes à examiner avant de créer une expérience.",
+      recommendationsDisclaimer: "Ces suggestions sont présentées comme des opportunités produit. Elles ne doivent pas être vendues comme une analyse IA si aucun moteur IA n'est branché."
     },
     analytics: {
       title: "Analytics",
@@ -218,78 +224,86 @@ const fr: Copy = {
       trafficTitle: "Vue trafic",
       trafficDescription: "Volume, engagement et progression dans le funnel.",
       funnelTitle: "Funnel de conversion",
-      funnelDescription: "Le passage du visiteur jusqu'a l'achat.",
-      comparisonTitle: "Comparaison de periode",
-      comparisonDescription: "Periode actuelle versus precedente, avec ecarts lisibles.",
+      funnelDescription: "Le passage du visiteur jusqu'à l'achat.",
+      comparisonTitle: "Comparaison de période",
+      comparisonDescription: "Période actuelle versus précédente, avec écarts lisibles.",
       pageTableTitle: "Pages et performance",
       pageTableDescription: "Les pages les plus vues et leur contribution business.",
       interactionTableTitle: "Zones d'interaction",
-      interactionTableDescription: "Les elements cliques et leur contexte.",
-      qualityTitle: "Qualite de collecte",
-      qualityDescription: "Verifie rapidement si la data remonte proprement.",
-      currentPeriod: "Periode actuelle",
-      previousPeriod: "Periode precedente",
-      delta: "Evolution"
+      interactionTableDescription: "Les éléments cliqués et leur contexte.",
+      qualityTitle: "Qualité de collecte",
+      qualityDescription: "Vérifie rapidement si la data remonte proprement.",
+      currentPeriod: "Période actuelle",
+      previousPeriod: "Période précédente",
+      delta: "Évolution"
     },
     sessions: {
       title: "Sessions",
-      description: "Comprendre le comportement reel des visiteurs, les signaux de frustration et les zones cliquees.",
+      description: "Comprendre le comportement réel des visiteurs, les signaux de frustration et les zones cliquées.",
       replayTitle: "Replays disponibles",
-      replayDescription: "Sessions suffisamment riches pour etre inspectees.",
+      replayDescription: "Sessions suffisamment riches pour être inspectées.",
       hotspotsTitle: "Hotspots de clic",
-      hotspotsDescription: "Les zones les plus sollicitees du site.",
+      hotspotsDescription: "Les zones les plus sollicitées du site.",
       diagnosticsTitle: "Diagnostics de session",
       diagnosticsDescription: "Friction, erreurs et signaux d'intention.",
-      noReplay: "Aucune session exploitable n'a encore ete capturee."
+      noReplay: "Aucune session exploitable n'a encore été capturée."
+    },
+    segments: {
+      title: "Segments",
+      description: "Créer des lectures comportementales simples à partir des pages, clics et étapes du funnel.",
+      presetsTitle: "Segments prêts à l'emploi",
+      presetsDescription: "Des vues utiles pour démarrer sans construire des filtres complexes.",
+      pinnedTitle: "Segments à épingler",
+      pinnedDescription: "Les segments importants à garder sous la main dans ton dashboard."
     },
     activity: {
-      title: "Activite",
-      description: "Suivi operationnel du site: onboarding, etat SDK, flux d'evenements et historique des actions.",
+      title: "Activité",
+      description: "Suivi opérationnel du site : onboarding, état SDK, flux d'événements et historique des actions.",
       onboardingTitle: "Onboarding",
-      onboardingDescription: "Ou vous en etes dans la mise en place.",
+      onboardingDescription: "Où vous en êtes dans la mise en place.",
       sdkTitle: "Transport SDK",
-      sdkDescription: "Sante de la collecte et derniers evenements recus.",
-      feedTitle: "Flux d'activite",
-      feedDescription: "Evenements recents pour verifier ce qui remonte vraiment.",
+      sdkDescription: "Santé de la collecte et derniers événements reçus.",
+      feedTitle: "Flux d'activité",
+      feedDescription: "Événements récents pour vérifier ce qui remonte vraiment.",
       auditTitle: "Historique",
       auditDescription: "Actions de lancement, validation et changements de workflow."
     },
     experiments: {
-      title: "Experiences",
+      title: "Expériences",
       description: "Le portefeuille de tests du site, avec un suivi clair du statut, de l'impact et du funnel.",
-      createAction: "Creer une experience",
+      createAction: "Créer une expérience",
       secondaryAction: "Voir les suggestions",
       portfolioTitle: "Portefeuille",
-      portfolioDescription: "Combien d'experiences existent et combien tournent vraiment.",
-      readinessTitle: "Pretes a lancer",
-      readinessDescription: "Ce qui est pret pour revue, approbation ou mise en ligne.",
+      portfolioDescription: "Combien d'expériences existent et combien tournent vraiment.",
+      readinessTitle: "Prêtes à lancer",
+      readinessDescription: "Ce qui est prêt pour revue, approbation ou mise en ligne.",
       funnelTitle: "Impact du portefeuille",
-      funnelDescription: "Contribution cumulee des experiences sur le trafic et l'achat.",
-      statesTitle: "Statuts d'execution",
-      statesDescription: "Repartition simple des experiences par etat."
+      funnelDescription: "Contribution cumulée des expériences sur le trafic et l'achat.",
+      statesTitle: "Statuts d'exécution",
+      statesDescription: "Répartition simple des expériences par état."
     },
     installation: {
       title: "Installation",
-      description: "Mettre Optify en place proprement, verifier la remontee d'evenements et confirmer les capacites disponibles.",
+      description: "Mettre Optify en place proprement, vérifier la remontée d'événements et confirmer les capacités disponibles.",
       snippetTitle: "Snippet d'installation",
       snippetDescription: "Le chemin le plus rapide pour brancher le SDK.",
-      checksTitle: "Verifications",
-      checksDescription: "Controle immediat de la sante d'installation.",
+      checksTitle: "Vérifications",
+      checksDescription: "Contrôle immédiat de la santé d'installation.",
       guideTitle: "Guide plateforme",
-      guideDescription: "Etapes concretes selon votre stack.",
-      capabilitiesTitle: "Pages et capacites observees",
-      capabilitiesDescription: "Ce que le SDK voit reellement aujourd'hui.",
+      guideDescription: "Étapes concrètes selon votre stack.",
+      capabilitiesTitle: "Pages et capacités observées",
+      capabilitiesDescription: "Ce que le SDK voit réellement aujourd'hui.",
       shopifyTitle: "Configuration Shopify",
-      shopifyDescription: "Snippet Liquid, custom pixel et etat de connexion."
+      shopifyDescription: "Snippet Liquid, custom pixel et état de connexion."
     },
     suggestions: {
       title: "Suggestions",
-      description: "Une file d'opportunites et d'idees de tests a transformer en experiences, sans surpromesse marketing.",
+      description: "Une file d'opportunités et d'idées de tests à transformer en expériences, sans surpromesse marketing.",
       queueTitle: "File de suggestions",
-      queueDescription: "Opportunites pretes a etre examinees.",
-      evidenceTitle: "Elements de preuve",
+      queueDescription: "Opportunités prêtes à être examinées.",
+      evidenceTitle: "Éléments de preuve",
       evidenceDescription: "Signaux de comportement utiles pour prioriser.",
-      disclaimer: "Le produit doit parler de suggestions et d'heuristiques tant qu'aucun moteur IA reel n'alimente cette vue."
+      disclaimer: "Le produit doit parler de suggestions et d'heuristiques tant qu'aucun moteur IA réel n'alimente cette vue."
     }
   }
 };
@@ -298,14 +312,13 @@ const en: Copy = {
   nav: {
     currentSite: "Current site",
     addSite: "Add site",
-    command: "Command",
-    observe: "Observe",
-    decide: "Suggestions",
-    act: "Execution",
+    analyticsSuite: "Analytics",
+    activationSuite: "Activation",
     workspace: "Workspace",
-    overview: "Overview",
+    overview: "Dashboard",
     analytics: "Analytics",
     sessions: "Sessions",
+    segments: "Segments",
     activity: "Activity",
     suggestions: "Suggestions",
     experiments: "Experiments",
@@ -332,8 +345,8 @@ const en: Copy = {
   },
   pages: {
     overview: {
-      title: "Overview",
-      description: "A quick read of site traffic, useful pages, friction signals, live tests, and installation progress.",
+      title: "Dashboard",
+      description: "Two clean spaces: behavior analytics on one side, activation and testing on the other.",
       primaryAction: "Open analytics",
       secondaryAction: "Open experiments",
       summaryTitle: "Site summary",
@@ -388,6 +401,14 @@ const en: Copy = {
       diagnosticsTitle: "Session diagnostics",
       diagnosticsDescription: "Friction, errors, and intent signals.",
       noReplay: "No usable session has been captured yet."
+    },
+    segments: {
+      title: "Segments",
+      description: "Create simple behavior views from pages, clicks, and funnel milestones.",
+      presetsTitle: "Ready-made segments",
+      presetsDescription: "Useful views to start without complex filtering.",
+      pinnedTitle: "Pin-worthy segments",
+      pinnedDescription: "The segments that deserve a fixed place on your dashboard."
     },
     activity: {
       title: "Activity",
@@ -499,20 +520,20 @@ export function formatDashboardStatus(status: string, locale: Locale) {
         running: "En cours",
         paused: "En pause",
         draft: "Brouillon",
-        ready_for_review: "Pret pour revue",
-        approved: "Approuve",
-        scheduled: "Planifie",
+        ready_for_review: "Prêt pour revue",
+        approved: "Approuvé",
+        scheduled: "Planifié",
         healthy: "Sain",
-        warning: "A surveiller",
-        fail: "Echec",
-        pass: "Valide",
-        warn: "A verifier",
-        connected: "Connecte",
-        not_connected: "Non connecte",
+        warning: "À surveiller",
+        fail: "Échec",
+        pass: "Validé",
+        warn: "À vérifier",
+        connected: "Connecté",
+        not_connected: "Non connecté",
         needs_attention: "Attention requise",
-        complete: "Termine",
+        complete: "Terminé",
         current: "En cours",
-        pending: "A faire"
+        pending: "À faire"
       }
     : {
         running: "Running",
@@ -543,7 +564,7 @@ export function formatEventLabel(value: string, locale: Locale) {
         click: "Clic",
         cta_click: "Clic CTA",
         add_to_cart: "Ajout au panier",
-        checkout_start: "Debut checkout",
+        checkout_start: "Début checkout",
         purchase: "Achat",
         conversion: "Conversion",
         recommendation_click: "Clic recommandation",
