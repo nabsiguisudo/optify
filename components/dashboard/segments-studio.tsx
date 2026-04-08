@@ -318,14 +318,16 @@ export function SegmentsStudio({
         selector?: string;
         elementText?: string;
         targetUrl?: string;
+        label?: string;
+        url?: string;
       };
 
       if (!data || data.type !== "optify-builder-selection") return;
       setElementDraft((current) => ({
         ...current,
         selector: data.selector ?? current.selector,
-        elementText: data.elementText ?? current.elementText,
-        targetUrl: data.targetUrl ?? current.targetUrl
+        elementText: data.elementText ?? data.label ?? current.elementText,
+        targetUrl: data.targetUrl ?? data.url ?? current.targetUrl
       }));
       setPickerStatus(`Élément capturé: ${data.selector ?? "sélecteur inconnu"}`);
     }
@@ -414,7 +416,7 @@ export function SegmentsStudio({
       const url = new URL(elementDraft.targetUrl);
       url.searchParams.set("optify_builder", "1");
       url.searchParams.set("optify_builder_origin", window.location.origin);
-      const popup = window.open(url.toString(), "_blank", "noopener,noreferrer");
+      const popup = window.open(url.toString(), "_blank", "popup=yes,width=1440,height=960");
       setPickerStatus(popup ? "Picker ouvert dans la boutique. Clique un élément pour récupérer le sélecteur." : "Impossible d'ouvrir le picker.");
     } catch {
       setPickerStatus("URL invalide pour le picker.");
