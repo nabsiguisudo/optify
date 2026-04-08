@@ -296,6 +296,7 @@ export function SegmentsStudio({
     elementText: ""
   });
   const [builderOpen, setBuilderOpen] = useState(false);
+  const [saveStatus, setSaveStatus] = useState("");
   const [pickerStatus, setPickerStatus] = useState("Aucun élément sélectionné dans la boutique pour l'instant.");
 
   useEffect(() => {
@@ -309,14 +310,6 @@ export function SegmentsStudio({
       setSavedElements([]);
     }
   }, [projectId]);
-
-  useEffect(() => {
-    window.localStorage.setItem(createSegmentStorageKey(projectId), JSON.stringify(segments));
-  }, [projectId, segments]);
-
-  useEffect(() => {
-    window.localStorage.setItem(createSegmentElementsStorageKey(projectId), JSON.stringify(savedElements));
-  }, [projectId, savedElements]);
 
   useEffect(() => {
     function handleMessage(event: MessageEvent) {
@@ -343,23 +336,46 @@ export function SegmentsStudio({
 
   const pinnedSegments = useMemo(() => segments.filter((segment) => segment.pinned), [segments]);
 
+  function persistSegments(nextSegments: SegmentDefinition[]) {
+    setSegments(nextSegments);
+    try {
+      window.localStorage.setItem(createSegmentStorageKey(projectId), JSON.stringify(nextSegments));
+      setSaveStatus("Segment sauvegarde.");
+    } catch {
+      setSaveStatus("Impossible de sauvegarder le segment dans ce navigateur.");
+    }
+  }
+
+  function persistElements(nextElements: SavedSegmentElement[]) {
+    setSavedElements(nextElements);
+    try {
+      window.localStorage.setItem(createSegmentElementsStorageKey(projectId), JSON.stringify(nextElements));
+      setPickerStatus("Element sauvegarde. Tu peux maintenant l'utiliser comme filtre dans les events.");
+    } catch {
+      setPickerStatus("Impossible de sauvegarder cet element dans ce navigateur.");
+    }
+  }
+
   function persistSegment() {
-    if (!draft.name.trim()) return;
+    if (!draft.name.trim()) {
+      setSaveStatus("Ajoute un nom de segment avant de sauvegarder.");
+      return;
+    }
     const nextSegment: SegmentDefinition = {
       ...draft,
       updatedAt: new Date().toISOString()
     };
-    setSegments((current) => [nextSegment, ...current.filter((segment) => segment.id !== nextSegment.id)]);
+    persistSegments([nextSegment, ...segments.filter((segment) => segment.id !== nextSegment.id)]);
     setDraft(createSegmentDefinition());
     setBuilderOpen(false);
   }
 
   function removeSegment(segmentId: string) {
-    setSegments((current) => current.filter((segment) => segment.id !== segmentId));
+    persistSegments(segments.filter((segment) => segment.id !== segmentId));
   }
 
   function togglePinned(segmentId: string) {
-    setSegments((current) => current.map((segment) => segment.id === segmentId ? { ...segment, pinned: !segment.pinned, updatedAt: new Date().toISOString() } : segment));
+    persistSegments(segments.map((segment) => segment.id === segmentId ? { ...segment, pinned: !segment.pinned, updatedAt: new Date().toISOString() } : segment));
   }
 
   function saveElement() {
@@ -375,7 +391,7 @@ export function SegmentsStudio({
       elementText: elementDraft.elementText.trim(),
       createdAt: new Date().toISOString()
     };
-    setSavedElements((current) => [nextElement, ...current]);
+    persistElements([nextElement, ...savedElements]);
     setElementDraft({
       name: "",
       description: "",
@@ -521,6 +537,7 @@ export function SegmentsStudio({
               Annuler
             </Button>
           </div>
+          {saveStatus ? <p className="mt-3 text-sm text-[#6b6255]">{saveStatus}</p> : null}
         </Card>
       ) : null}
 
@@ -576,7 +593,7 @@ export function SegmentsStudio({
                     </p>
                     {element.description ? <p className="mt-1 text-xs text-[#7a705f]">{element.description}</p> : null}
                   </div>
-                  <button type="button" onClick={() => setSavedElements((current) => current.filter((item) => item.id !== element.id))} className="text-muted-foreground transition hover:text-foreground">
+                  <button type="button" onClick={() => persistElements(savedElements.filter((item) => item.id !== element.id))} className="text-muted-foreground transition hover:text-foreground">
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
