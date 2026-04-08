@@ -6,6 +6,7 @@ import { Activity, Bot, ChartColumnBig, ChevronDown, Clapperboard, CreditCard, L
 import { DeleteProjectButton } from "@/components/forms/delete-project-button";
 import { Badge } from "@/components/ui/badge";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
+import { getSiteDashboardCopy } from "@/lib/site-dashboard";
 import { cn } from "@/lib/utils";
 
 type SidebarProject = {
@@ -44,33 +45,34 @@ export function DashboardSidebar({
   const section = pathname.match(/^\/dashboard\/sites\/[^/]+\/([^/?#]+)/)?.[1] ?? "overview";
   const query = searchParams.toString();
   const withQuery = (href: string) => `${href}${query ? `?${query}` : `?lang=${locale}`}`;
+  const copy = getSiteDashboardCopy(locale === "fr" ? "fr" : "en");
 
   const groups = currentProject ? [
     {
-      label: "Command",
+      label: copy.nav.command,
       items: [
-        { href: `/dashboard/sites/${currentProject.id}/overview`, label: "Overview", icon: LayoutPanelLeft, key: "overview" }
+        { href: `/dashboard/sites/${currentProject.id}/overview`, label: copy.nav.overview, icon: LayoutPanelLeft, key: "overview" }
       ]
     },
     {
-      label: "Observe",
+      label: copy.nav.observe,
       items: [
-        { href: `/dashboard/sites/${currentProject.id}/analytics`, label: "Analytics", icon: ChartColumnBig, key: "analytics" },
-        { href: `/dashboard/sites/${currentProject.id}/sessions`, label: "Sessions", icon: Clapperboard, key: "sessions" },
-        { href: `/dashboard/sites/${currentProject.id}/activity`, label: "Activity", icon: Activity, key: "activity" }
+        { href: `/dashboard/sites/${currentProject.id}/analytics`, label: copy.nav.analytics, icon: ChartColumnBig, key: "analytics" },
+        { href: `/dashboard/sites/${currentProject.id}/sessions`, label: copy.nav.sessions, icon: Clapperboard, key: "sessions" },
+        { href: `/dashboard/sites/${currentProject.id}/activity`, label: copy.nav.activity, icon: Activity, key: "activity" }
       ]
     },
     {
-      label: "Decide",
+      label: copy.nav.decide,
       items: [
-        { href: `/dashboard/sites/${currentProject.id}/ai`, label: "AI Copilot", icon: Bot, key: "ai" }
+        { href: `/dashboard/sites/${currentProject.id}/ai`, label: copy.nav.suggestions, icon: Bot, key: "ai" }
       ]
     },
     {
-      label: "Act",
+      label: copy.nav.act,
       items: [
-        { href: `/dashboard/sites/${currentProject.id}/experiments`, label: "Experiments", icon: Rocket, key: "experiments" },
-        { href: `/dashboard/sites/${currentProject.id}/installation`, label: "Installation", icon: Settings2, key: "installation" }
+        { href: `/dashboard/sites/${currentProject.id}/experiments`, label: copy.nav.experiments, icon: Rocket, key: "experiments" },
+        { href: `/dashboard/sites/${currentProject.id}/installation`, label: copy.nav.installation, icon: Settings2, key: "installation" }
       ]
     }
   ] : [];
@@ -91,9 +93,9 @@ export function DashboardSidebar({
         <details className="rounded-[1.4rem] border border-white/70 bg-white/80 p-4 shadow-[0_12px_30px_rgba(91,86,132,0.06)]" open>
           <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-xs font-medium text-muted-foreground">Current site</p>
-              <p className="mt-1 truncate text-sm font-semibold">{currentProject?.name ?? "No site selected"}</p>
-              <p className="truncate text-xs text-muted-foreground">{currentProject?.domain ?? "Create a site to begin"}</p>
+              <p className="text-xs font-medium text-muted-foreground">{copy.nav.currentSite}</p>
+              <p className="mt-1 truncate text-sm font-semibold">{currentProject?.name ?? copy.nav.noSite}</p>
+              <p className="truncate text-xs text-muted-foreground">{currentProject?.domain ?? copy.nav.createSiteHint}</p>
             </div>
             <ChevronDown className="h-4 w-4 text-muted-foreground" />
           </summary>
@@ -116,7 +118,7 @@ export function DashboardSidebar({
             ))}
             <Link href={withQuery("/dashboard/projects/new")} className="mt-2 flex items-center gap-2 rounded-2xl border border-dashed border-border px-3 py-3 text-sm text-muted-foreground transition hover:bg-secondary/40">
               <Wrench className="h-4 w-4" />
-              Add a new site
+              {copy.nav.addSite}
             </Link>
             {currentProject ? (
               <DeleteProjectButton projectId={currentProject.id} projectName={currentProject.name} locale={locale} />
@@ -151,15 +153,15 @@ export function DashboardSidebar({
           ))}
 
           <div>
-            <p className="mb-2 px-2 text-xs font-medium text-muted-foreground">Workspace</p>
+            <p className="mb-2 px-2 text-xs font-medium text-muted-foreground">{copy.nav.workspace}</p>
             <div className="space-y-1">
               <Link href={withQuery("/dashboard/shopify")} className="flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm text-muted-foreground transition hover:bg-secondary hover:text-foreground">
                 <ShoppingBag className="h-4 w-4" />
-                Shopify hub
+                {copy.nav.shopifyHub}
               </Link>
               <Link href={withQuery("/dashboard/billing")} className="flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm text-muted-foreground transition hover:bg-secondary hover:text-foreground">
                 <CreditCard className="h-4 w-4" />
-                Billing
+                {copy.nav.billing}
               </Link>
             </div>
           </div>

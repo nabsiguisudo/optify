@@ -1,6 +1,5 @@
 "use client";
 
-import { Film, MousePointerClick } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import type { ReplayOpportunity, SessionDiagnostic } from "@/lib/types";
 
@@ -17,13 +16,9 @@ export function ReplayHub({
     <Card className="bg-white">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-primary">
-            <Film className="h-4 w-4" />
-            Session replays
-          </div>
-          <h2 className="mt-3 text-2xl font-semibold">Understand friction from real user sessions</h2>
-          <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
-            Use recent sessions to spot friction, isolate high-intent visitors, and decide what to improve next. This is replay plus diagnostics, not yet a full Clarity-style video recorder.
+          <p className="text-lg font-semibold">Lecture des replays</p>
+          <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
+            Cette zone sert a lire rapidement les sessions les plus utiles. On parle ici de replays et de diagnostics, pas d'une promesse FullStory ou Clarity si le moteur n'est pas encore complet.
           </p>
         </div>
         {experimentName ? <div className="rounded-full bg-secondary px-4 py-2 text-sm">{experimentName}</div> : null}
@@ -48,8 +43,8 @@ export function ReplayHub({
               </div>
               <div className="mt-4 flex flex-wrap gap-2 text-sm text-muted-foreground">
                 <span>{session.rageClicks} rage clicks</span>
-                <span>{session.deadClicks} dead clicks</span>
-                <span>{session.jsErrors} JS errors</span>
+                <span>{session.deadClicks} clics sans effet</span>
+                <span>{session.jsErrors} erreurs JS</span>
                 <span>{session.conversions} conversions</span>
               </div>
             </div>
@@ -58,11 +53,8 @@ export function ReplayHub({
 
         <div className="space-y-3">
           {opportunities.map((item) => (
-            <div key={item.sessionId} className="rounded-3xl bg-[#f7f1df] p-5">
-              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-primary">
-                <MousePointerClick className="h-4 w-4" />
-                AI next action from replay
-              </div>
+            <div key={item.sessionId} className="rounded-3xl bg-[#fff6e8] p-5">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#9b6b27]">Piste a regarder</p>
               <p className="mt-3 text-lg font-semibold">{item.opportunityTitle}</p>
               <p className="mt-2 text-sm text-muted-foreground">{item.summary}</p>
               <div className="mt-4 flex flex-wrap gap-2 text-sm">

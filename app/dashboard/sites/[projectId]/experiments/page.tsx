@@ -1,13 +1,18 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ExperimentTable } from "@/components/dashboard/experiment-table";
-import { LaunchCenter } from "@/components/dashboard/launch-center";
-import { Badge } from "@/components/ui/badge";
+import {
+  DashboardKpiCard,
+  DashboardKpiGrid,
+  DashboardMetricList,
+  DashboardPageHeader,
+  DashboardSection,
+  DashboardStatusBadge
+} from "@/components/dashboard/site-dashboard-primitives";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { getExperimentStats, getExperimentsByProject, getProjectById, getProjectLaunchCenter } from "@/lib/data";
+import { getExperimentStats, getExperimentsByProject, getProjectById } from "@/lib/data";
 import { resolveLocale, withLang } from "@/lib/i18n";
-import { formatNumber, formatPercent } from "@/lib/utils";
+import { formatDashboardCurrency, formatDashboardNumber, formatDashboardPercent, getSiteDashboardCopy } from "@/lib/site-dashboard";
 
 export default async function SiteExperimentsPage({
   params,
@@ -18,12 +23,11 @@ export default async function SiteExperimentsPage({
 }) {
   const { projectId } = await params;
   const locale = resolveLocale((await searchParams).lang);
+  const copy = getSiteDashboardCopy(locale);
   const project = await getProjectById(projectId);
   if (!project) notFound();
-  const [experiments, launchCenter] = await Promise.all([
-    getExperimentsByProject(projectId),
-    getProjectLaunchCenter(projectId, locale)
-  ]);
+
+  const experiments = await getExperimentsByProject(projectId);
   const statsEntries = await Promise.all(experiments.map(async (experiment) => [experiment.id, await getExperimentStats(experiment.id)] as const));
   const statsByExperiment = Object.fromEntries(statsEntries);
   const aggregate = Object.values(statsByExperiment).reduce(
@@ -39,92 +43,87 @@ export default async function SiteExperimentsPage({
     { visitors: 0, addToCart: 0, checkout: 0, purchases: 0, revenue: 0 }
   );
 
+  const byState = {
+    draft: experiments.filter((experiment) => experiment.workflowState === "draft").length,
+    ready: experiments.filter((experiment) => experiment.workflowState === "ready_for_review").length,
+    approved: experiments.filter((experiment) => experiment.workflowState === "approved").length,
+    scheduled: experiments.filter((experiment) => experiment.workflowState === "scheduled").length,
+    running: experiments.filter((experiment) => experiment.status === "running").length
+  };
+
   return (
     <div className="space-y-6">
-      <Card className="bg-white">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="max-w-4xl">
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge className="bg-primary/10 text-primary">Act</Badge>
-              <Badge>Dynamic Yield execution layer</Badge>
-            </div>
-            <h1 className="mt-4 text-3xl font-semibold">Experiments and rollout</h1>
-            <p className="mt-3 text-muted-foreground">
-              This is the execution layer of Optify: the place where AI recommendations, personalization ideas and site changes become live experiments, controlled launches and measurable business outcomes.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-3">
+      <DashboardPageHeader
+        eyebrow={copy.pages.experiments.title}
+        title={project.name}
+        description={copy.pages.experiments.description}
+        actions={(
+          <>
             <Button asChild>
-              <Link href={withLang(`/dashboard/projects/${project.id}/experiments/new`, locale)}>Create experience</Link>
+              <Link href={withLang(`/dashboard/projects/${project.id}/experiments/new`, locale)}>{copy.pages.experiments.createAction}</Link>
             </Button>
             <Button asChild variant="outline">
-              <Link href={withLang(`/dashboard/sites/${projectId}/ai`, locale)}>Open AI copilot</Link>
+              <Link href={withLang(`/dashboard/sites/${projectId}/ai`, locale)}>{copy.pages.experiments.secondaryAction}</Link>
             </Button>
-          </div>
-        </div>
-      </Card>
+          </>
+        )}
+        meta={(
+          <>
+            <DashboardStatusBadge label={`${formatDashboardNumber(byState.running, locale)} en cours`} tone="good" />
+            <DashboardStatusBadge label={`${formatDashboardNumber(byState.ready + byState.approved + byState.scheduled, locale)} pretes`} tone="muted" />
+          </>
+        )}
+      />
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Card className="bg-white">
-          <p className="text-sm text-muted-foreground">Portfolio</p>
-          <p className="mt-2 text-3xl font-semibold">{formatNumber(experiments.length)}</p>
-          <p className="mt-2 text-sm text-muted-foreground">Experiments, rollouts and launch items tracked for this site.</p>
-        </Card>
-        <Card className="bg-white">
-          <p className="text-sm text-muted-foreground">Ready to launch</p>
-          <p className="mt-2 text-3xl font-semibold">{formatNumber(launchCenter.counts.readyForReview + launchCenter.counts.approved + launchCenter.counts.scheduled)}</p>
-          <p className="mt-2 text-sm text-muted-foreground">Items already close to execution.</p>
-        </Card>
-        <Card className="bg-white">
-          <p className="text-sm text-muted-foreground">Running now</p>
-          <p className="mt-2 text-3xl font-semibold">{formatNumber(launchCenter.counts.running)}</p>
-          <p className="mt-2 text-sm text-muted-foreground">Live experiences currently learning on the storefront.</p>
-        </Card>
-        <Card className="bg-white">
-          <p className="text-sm text-muted-foreground">Revenue influenced</p>
-          <p className="mt-2 text-3xl font-semibold">${formatNumber(Math.round(aggregate.revenue))}</p>
-          <p className="mt-2 text-sm text-muted-foreground">Tracked revenue across the active experiment portfolio.</p>
-        </Card>
+      <DashboardSection title={copy.pages.experiments.portfolioTitle} description={copy.pages.experiments.portfolioDescription}>
+        <DashboardKpiGrid>
+          <DashboardKpiCard label="Portefeuille" value={formatDashboardNumber(experiments.length, locale)} />
+          <DashboardKpiCard label="Pretes a lancer" value={formatDashboardNumber(byState.ready + byState.approved + byState.scheduled, locale)} tone="soft" />
+          <DashboardKpiCard label="En cours" value={formatDashboardNumber(byState.running, locale)} tone="warm" />
+          <DashboardKpiCard label="Revenu influence" value={formatDashboardCurrency(Math.round(aggregate.revenue), locale)} />
+        </DashboardKpiGrid>
+      </DashboardSection>
+
+      <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+        <DashboardSection title={copy.pages.experiments.funnelTitle} description={copy.pages.experiments.funnelDescription}>
+          <DashboardMetricList
+            items={[
+              {
+                label: "Visiteurs",
+                value: formatDashboardNumber(aggregate.visitors, locale),
+                note: "Volume total vu par les experiences."
+              },
+              {
+                label: "Ajouts au panier",
+                value: formatDashboardNumber(aggregate.addToCart, locale),
+                note: formatDashboardPercent(aggregate.visitors === 0 ? 0 : aggregate.addToCart / aggregate.visitors, locale)
+              },
+              {
+                label: "Checkouts",
+                value: formatDashboardNumber(aggregate.checkout, locale),
+                note: formatDashboardPercent(aggregate.addToCart === 0 ? 0 : aggregate.checkout / aggregate.addToCart, locale)
+              },
+              {
+                label: "Achats",
+                value: formatDashboardNumber(aggregate.purchases, locale),
+                note: formatDashboardCurrency(Math.round(aggregate.revenue), locale)
+              }
+            ]}
+          />
+        </DashboardSection>
+
+        <DashboardSection title={copy.pages.experiments.statesTitle} description={copy.pages.experiments.statesDescription}>
+          <DashboardMetricList
+            items={[
+              { label: "Brouillons", value: formatDashboardNumber(byState.draft, locale) },
+              { label: "Pretes pour revue", value: formatDashboardNumber(byState.ready, locale) },
+              { label: "Approuvees", value: formatDashboardNumber(byState.approved, locale) },
+              { label: "Planifiees", value: formatDashboardNumber(byState.scheduled, locale) },
+              { label: "En cours", value: formatDashboardNumber(byState.running, locale) }
+            ]}
+          />
+        </DashboardSection>
       </div>
-
-      <LaunchCenter snapshot={launchCenter} />
-
-      <section className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
-        <Card className="bg-white">
-          <p className="text-lg font-semibold">Execution funnel</p>
-          <p className="mt-2 text-sm text-muted-foreground">A simple business view of what current experiences influence from traffic to purchase.</p>
-          <div className="mt-5 grid gap-3 md:grid-cols-4">
-            <div className="rounded-3xl bg-secondary/50 p-4">
-              <p className="text-sm text-muted-foreground">Visitors</p>
-              <p className="mt-2 text-2xl font-semibold">{formatNumber(aggregate.visitors)}</p>
-            </div>
-            <div className="rounded-3xl bg-secondary/50 p-4">
-              <p className="text-sm text-muted-foreground">Add to cart</p>
-              <p className="mt-2 text-2xl font-semibold">{formatNumber(aggregate.addToCart)}</p>
-              <p className="mt-1 text-sm text-muted-foreground">{formatPercent(aggregate.visitors === 0 ? 0 : aggregate.addToCart / aggregate.visitors)}</p>
-            </div>
-            <div className="rounded-3xl bg-secondary/50 p-4">
-              <p className="text-sm text-muted-foreground">Checkout</p>
-              <p className="mt-2 text-2xl font-semibold">{formatNumber(aggregate.checkout)}</p>
-              <p className="mt-1 text-sm text-muted-foreground">{formatPercent(aggregate.addToCart === 0 ? 0 : aggregate.checkout / aggregate.addToCart)}</p>
-            </div>
-            <div className="rounded-3xl bg-secondary/50 p-4">
-              <p className="text-sm text-muted-foreground">Purchases</p>
-              <p className="mt-2 text-2xl font-semibold">{formatNumber(aggregate.purchases)}</p>
-              <p className="mt-1 text-sm text-muted-foreground">${formatNumber(Math.round(aggregate.revenue))}</p>
-            </div>
-          </div>
-        </Card>
-        <Card className="bg-white">
-          <p className="text-lg font-semibold">Execution states</p>
-          <div className="mt-5 space-y-3">
-            <div className="rounded-3xl border border-border p-4 text-sm">Ready for review: <span className="font-semibold">{launchCenter.counts.readyForReview}</span></div>
-            <div className="rounded-3xl border border-border p-4 text-sm">Approved: <span className="font-semibold">{launchCenter.counts.approved}</span></div>
-            <div className="rounded-3xl border border-border p-4 text-sm">Scheduled: <span className="font-semibold">{launchCenter.counts.scheduled}</span></div>
-            <div className="rounded-3xl border border-border p-4 text-sm">Running: <span className="font-semibold">{launchCenter.counts.running}</span></div>
-          </div>
-        </Card>
-      </section>
 
       <ExperimentTable experiments={experiments} statsByExperiment={statsByExperiment} locale={locale} />
     </div>

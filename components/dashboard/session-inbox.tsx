@@ -1,20 +1,14 @@
 import Link from "next/link";
 import { Play } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { formatDashboardDateTime, formatDashboardDuration } from "@/lib/site-dashboard";
 import type { SessionDiagnostic } from "@/lib/types";
-
-function formatDuration(durationMs: number) {
-  const totalSeconds = Math.max(0, Math.round(durationMs / 1000));
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${minutes}m ${String(seconds).padStart(2, "0")}s`;
-}
 
 function formatDevice(deviceType: SessionDiagnostic["deviceType"]) {
   if (deviceType === "mobile") return "Mobile";
-  if (deviceType === "tablet") return "Tablet";
+  if (deviceType === "tablet") return "Tablette";
   if (deviceType === "desktop") return "Desktop";
-  return "Unknown device";
+  return "Inconnu";
 }
 
 export function SessionInbox({ projectId, sessions }: { projectId: string; sessions: SessionDiagnostic[] }) {
@@ -22,10 +16,10 @@ export function SessionInbox({ projectId, sessions }: { projectId: string; sessi
     <Card className="bg-white">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-lg font-semibold">Session inbox</p>
-          <p className="mt-1 text-sm text-muted-foreground">Browse recent users, spot friction quickly, then open a dedicated replay page for each journey.</p>
+          <p className="text-lg font-semibold">Liste des sessions</p>
+          <p className="mt-1 text-sm text-muted-foreground">Une entree par visiteur recent, avec un acces direct au replay.</p>
         </div>
-        <div className="rounded-full bg-secondary px-4 py-2 text-sm text-muted-foreground">{sessions.length} recent sessions</div>
+        <div className="rounded-full bg-secondary px-4 py-2 text-sm text-muted-foreground">{sessions.length} sessions recentes</div>
       </div>
 
       <div className="mt-5 space-y-3">
@@ -37,19 +31,19 @@ export function SessionInbox({ projectId, sessions }: { projectId: string; sessi
                   <p className="truncate font-semibold">{session.anonymousId || session.sessionId}</p>
                   <span className="rounded-full bg-white px-3 py-1 text-xs text-muted-foreground">{formatDevice(session.deviceType)}</span>
                   <span className="rounded-full bg-white px-3 py-1 text-xs text-muted-foreground">{session.pages} pages</span>
-                  <span className="rounded-full bg-white px-3 py-1 text-xs text-muted-foreground">{formatDuration(session.durationMs)}</span>
+                  <span className="rounded-full bg-white px-3 py-1 text-xs text-muted-foreground">{formatDashboardDuration(session.durationMs, "fr")}</span>
                 </div>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Started {session.startedAt.replace("T", " ").slice(0, 19)} · {session.rageClicks} rage clicks · {session.deadClicks} dead clicks · {session.conversions} conversions
+                  Debut {formatDashboardDateTime(session.startedAt, "fr")} - {session.rageClicks} rage clicks - {session.deadClicks} clics sans effet - {session.conversions} conversions
                 </p>
               </div>
 
               <Link
                 href={`/dashboard/sites/${projectId}/sessions/${encodeURIComponent(session.sessionId)}`}
-                className="inline-flex items-center gap-2 rounded-full bg-[#11291f] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#163528]"
+                className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#ff5864_0%,#ff8c61_100%)] px-4 py-2 text-sm font-medium text-white transition hover:opacity-95"
               >
                 <Play className="h-4 w-4" />
-                Play
+                Lire
               </Link>
             </div>
           </div>

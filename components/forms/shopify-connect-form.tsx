@@ -37,12 +37,12 @@ export function ShopifyConnectForm({
       });
       const payload = await response.json();
       if (!response.ok) {
-        throw new Error(payload.error ?? "Unable to connect Shopify store");
+        throw new Error(payload.error ?? "Impossible de connecter la boutique Shopify");
       }
-      setMessage(`Connected to ${payload.connection.shopDomain}. Reload the page to see the synced storefront details.`);
+      setMessage(`Connecte a ${payload.connection.shopDomain}. Recharge la page pour voir les metadonnees synchronisees.`);
       setAdminAccessToken("");
     } catch (submissionError) {
-      setError(submissionError instanceof Error ? submissionError.message : "Unable to connect Shopify store");
+      setError(submissionError instanceof Error ? submissionError.message : "Impossible de connecter la boutique Shopify");
     } finally {
       setBusy(false);
     }
@@ -50,18 +50,18 @@ export function ShopifyConnectForm({
 
   return (
     <Card className="bg-white">
-      <p className="text-lg font-semibold">Advanced Shopify sync</p>
+      <p className="text-lg font-semibold">Connexion Shopify avancee</p>
       <p className="mt-2 text-sm text-muted-foreground">
-        This step is optional. Manual install already lets Optify track the storefront. Use this only if you want Optify to read shop metadata like theme, currency and plan.
+        Cette etape est optionnelle. L'installation manuelle suffit deja pour suivre la boutique. Utilise-la seulement si tu veux synchroniser des metadonnees comme le theme, la devise ou le plan.
       </p>
       <details className="mt-5 rounded-[1.6rem] border border-border bg-secondary/30 p-4">
-        <summary className="cursor-pointer list-none text-sm font-medium">Open advanced Shopify connection</summary>
+        <summary className="cursor-pointer list-none text-sm font-medium">Ouvrir la connexion avancee Shopify</summary>
         <p className="mt-3 text-sm text-muted-foreground">
-          Current Shopify setup is still pre-OAuth. If you already have a private Admin API token from a custom app, you can use it here. Otherwise, skip this and continue with the manual snippet + pixel install below.
+          Le flux OAuth n'est pas encore en place ici. Si tu as deja un token Admin API prive via une app custom Shopify, tu peux l'utiliser. Sinon, garde simplement le snippet + le pixel manuel.
         </p>
         <form onSubmit={onSubmit} className="mt-5 space-y-4">
           <label className="block">
-            <span className="mb-2 block text-sm font-medium">Shop domain</span>
+            <span className="mb-2 block text-sm font-medium">Domaine de la boutique</span>
             <input
               value={shopDomain}
               onChange={(event) => setShopDomain(event.target.value)}
@@ -70,7 +70,7 @@ export function ShopifyConnectForm({
             />
           </label>
           <label className="block">
-            <span className="mb-2 block text-sm font-medium">Admin API access token</span>
+            <span className="mb-2 block text-sm font-medium">Token Admin API</span>
             <input
               value={adminAccessToken}
               onChange={(event) => setAdminAccessToken(event.target.value)}
@@ -81,7 +81,7 @@ export function ShopifyConnectForm({
           </label>
           <div className="flex flex-wrap items-center gap-3">
             <Button type="submit" disabled={busy}>
-              {busy ? "Connecting..." : status === "connected" ? "Reconnect store" : "Connect store"}
+              {busy ? "Connexion..." : status === "connected" ? "Reconnecter la boutique" : "Connecter la boutique"}
             </Button>
             {message ? <span className="text-sm text-primary">{message}</span> : null}
             {error ? <span className="text-sm text-red-600">{error}</span> : null}

@@ -11,11 +11,11 @@ export function StatsChart({
     <div className="h-80 w-full">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data}>
-          <CartesianGrid vertical={false} strokeDasharray="3 3" />
-          <XAxis dataKey="variant" stroke="#6b6b63" />
-          <YAxis stroke="#6b6b63" tickFormatter={(value) => `${value}%`} />
+          <CartesianGrid vertical={false} stroke="#ece7f7" strokeDasharray="4 4" />
+          <XAxis dataKey="variant" stroke="#7b748c" tickLine={false} axisLine={false} />
+          <YAxis stroke="#7b748c" tickFormatter={(value) => `${value}%`} tickLine={false} axisLine={false} />
           <Tooltip formatter={(value: number) => `${value.toFixed(1)}%`} />
-          <Bar dataKey="conversionRate" fill="#135c43" radius={[10, 10, 0, 0]} />
+          <Bar dataKey="conversionRate" fill="#ff5864" radius={[12, 12, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>
