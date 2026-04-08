@@ -5,7 +5,7 @@ import { buildAudienceInsights, buildProductRecommendations, buildExperimentRepo
 import { buildShopifyInstallAssets } from "@/lib/shopify";
 import { buildGlobalAnalytics, computeExperimentStats } from "@/lib/stats";
 import { createSupabaseAdminClient, createSupabaseServerClient } from "@/lib/supabase";
-import { env, hasSupabaseEnv } from "@/lib/env";
+import { env, hasSupabaseClientEnv, hasSupabaseEnv } from "@/lib/env";
 import { type Locale } from "@/lib/i18n";
 import type { AiCopilotInsight, AiSuggestion, AudienceInsight, EventRecord, Experiment, ExperimentReport, ExperimentStats, GlobalAnalytics, InstallationDiagnostic, LaunchCenterItem, LaunchCenterSnapshot, OnboardingChecklistItem, OnboardingProgress, PageHeatmap, ProductRecommendation, Project, ReplayOpportunity, SdkDiagnosticsSnapshot, SessionDiagnostic, SessionRecordingChunk, SessionRecordingFrame, SessionReplayNode, ShopifyConnection, ShopifyInstallAssets, User } from "@/lib/types";
 
@@ -20,8 +20,8 @@ const clickLikeEventTypes = new Set<string>([
   "conversion"
 ]);
 
-export const getCurrentUser = cache(async (): Promise<User> => {
-  if (!hasSupabaseEnv()) {
+export const getCurrentUserOrNull = cache(async (): Promise<User | null> => {
+  if (!hasSupabaseClientEnv()) {
     return demoUser;
   }
 
@@ -30,7 +30,7 @@ export const getCurrentUser = cache(async (): Promise<User> => {
   const user = result?.data.user;
 
   if (!user) {
-    return demoUser;
+    return null;
   }
 
   return {
@@ -38,6 +38,11 @@ export const getCurrentUser = cache(async (): Promise<User> => {
     email: user.email ?? "",
     fullName: user.user_metadata.full_name ?? user.email ?? "Workspace owner"
   };
+});
+
+export const getCurrentUser = cache(async (): Promise<User> => {
+  const user = await getCurrentUserOrNull();
+  return user ?? demoUser;
 });
 
 export async function getProjects(): Promise<Project[]> {
@@ -50,7 +55,10 @@ export async function getProjects(): Promise<Project[]> {
   }
 
   const supabase = await createSupabaseAdminClient();
-  const user = await getCurrentUser();
+  const user = await getCurrentUserOrNull();
+  if (!user) {
+    return [];
+  }
   const { data } = await supabase.from("projects").select("*").eq("owner_id", user.id).order("created_at", { ascending: false });
   return (data ?? []).map((project) => ({
     id: project.id,

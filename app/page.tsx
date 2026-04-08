@@ -1,12 +1,25 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { ArrowRight, BarChart3, BrainCircuit, PlugZap } from "lucide-react";
 import { SiteShell } from "@/components/layout/site-shell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { getCurrentUserOrNull, getVisibleProjects } from "@/lib/data";
 import { getDictionary, resolveLocale, withLang } from "@/lib/i18n";
+import { hasSupabaseClientEnv } from "@/lib/env";
 
 export default async function HomePage({ searchParams }: { searchParams: Promise<{ lang?: string }> }) {
   const locale = resolveLocale((await searchParams).lang);
+  if (hasSupabaseClientEnv()) {
+    const user = await getCurrentUserOrNull();
+    if (user) {
+      const projects = await getVisibleProjects();
+      if (projects[0]) {
+        redirect(withLang(`/dashboard/sites/${projects[0].id}/overview`, locale));
+      }
+      redirect(withLang("/dashboard/projects/new", locale));
+    }
+  }
   const t = getDictionary(locale);
   type SiteFeature = (typeof t.site.features)[number];
 
