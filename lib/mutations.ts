@@ -18,6 +18,10 @@ import type {
   RecommendationConfig
 } from "@/lib/types";
 
+function isUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
 export const createProjectSchema = z.object({
   name: z.string().min(2),
   domain: z.string().min(3),
@@ -246,9 +250,24 @@ export async function createProject(input: z.infer<typeof createProjectSchema>):
     });
   }
 
+  if (!isUuid(user.id)) {
+    throw new Error("You need to sign in with a real Supabase user before creating a project.");
+  }
+
   const supabase = createSupabaseAdminClient();
   const projectId = randomUUID();
   const publicKey = `pub_${randomUUID().replace(/-/g, "").slice(0, 16)}`;
+
+  const { error: userError } = await supabase.from("users").upsert({
+    id: user.id,
+    email: user.email,
+    full_name: user.fullName
+  });
+
+  if (userError) {
+    throw new Error(userError.message);
+  }
+
   const { error } = await supabase.from("projects").insert({
     id: projectId,
     owner_id: user.id,
