@@ -235,6 +235,9 @@ export async function createProject(input: z.infer<typeof createProjectSchema>):
   const user = await getCurrentUser();
 
   if (!hasSupabaseEnv()) {
+    if (process.env.VERCEL) {
+      throw new Error("Supabase is required on Vercel to persist projects. Add NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, and SUPABASE_SERVICE_ROLE_KEY in Project Settings > Environment Variables.");
+    }
     return createDevProject({
       ownerId: user.id,
       name: payload.name,
