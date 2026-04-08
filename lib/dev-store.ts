@@ -1,5 +1,6 @@
 import { randomUUID } from "crypto";
 import { mkdir, readFile, rename, writeFile } from "fs/promises";
+import os from "os";
 import path from "path";
 import { demoUser } from "@/lib/demo-data";
 import type {
@@ -39,7 +40,8 @@ export interface DevStore {
   recordings: SessionRecordingChunk[];
 }
 
-const storeDir = path.join(process.cwd(), ".optify");
+const storeBaseDir = process.env.VERCEL ? path.join(os.tmpdir(), "optify") : path.join(process.cwd(), ".optify");
+const storeDir = storeBaseDir;
 const storePath = path.join(storeDir, "dev-store.json");
 const tempStorePath = path.join(storeDir, "dev-store.tmp.json");
 let storeMutationQueue = Promise.resolve();
