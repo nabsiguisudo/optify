@@ -1,9 +1,11 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { FunnelOverviewCard } from "@/components/dashboard/funnel-overview";
 import { GlobalKpiChart } from "@/components/dashboard/global-kpi-chart";
 import { PeriodComparisonCard } from "@/components/dashboard/period-comparison";
 import { SegmentationPanel } from "@/components/dashboard/segmentation-panel";
 import { StatsChart } from "@/components/dashboard/stats-chart";
+import { Button } from "@/components/ui/button";
 import {
   DashboardEmpty,
   DashboardKpiCard,
@@ -14,7 +16,7 @@ import {
   DashboardStatusBadge
 } from "@/components/dashboard/site-dashboard-primitives";
 import { getExperimentStats, getExperimentsByProject, getProjectAnalytics, getProjectBehaviorInsights, getProjectById } from "@/lib/data";
-import { resolveLocale } from "@/lib/i18n";
+import { resolveLocale, withLang } from "@/lib/i18n";
 import {
   formatDashboardCurrency,
   formatDashboardDateTime,
@@ -63,6 +65,16 @@ export default async function SiteAnalyticsPage({
         eyebrow={copy.pages.analytics.title}
         title={project.name}
         description={copy.pages.analytics.description}
+        actions={(
+          <>
+            <Button asChild>
+              <Link href={withLang(`/dashboard/sites/${projectId}/segments`, locale)}>Voir les segments</Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link href={withLang(`/dashboard/sites/${projectId}/sessions`, locale)}>Voir les sessions</Link>
+            </Button>
+          </>
+        )}
         meta={(
           <>
             <DashboardStatusBadge label={`${formatDashboardNumber(behavior.totals.sessions, locale)} sessions suivies`} tone="good" />
@@ -184,6 +196,36 @@ export default async function SiteAnalyticsPage({
           />
         </DashboardSection>
       </div>
+
+      <DashboardSection
+        title="Segments à suivre"
+        description="Cette zone sert de passerelle entre Analytics et un futur dashboard personnalisé par segment."
+        aside={(
+          <Button asChild variant="outline">
+            <Link href={withLang(`/dashboard/sites/${projectId}/segments`, locale)}>Ouvrir Segments</Link>
+          </Button>
+        )}
+      >
+        <DashboardMetricList
+          items={[
+            {
+              label: "Segment de page clé",
+              value: behavior.topPages[0] ? formatPageLabel(behavior.topPages[0].pathname) : "Aucun",
+              note: "Tous les visiteurs qui passent par la page la plus importante du site."
+            },
+            {
+              label: "Segment d'intention",
+              value: `${formatDashboardNumber(analytics.kpis.addToCart, locale)} actions panier`,
+              note: "Visiteurs qui montrent une vraie intention d'achat."
+            },
+            {
+              label: "Segment de friction",
+              value: `${formatDashboardNumber(analytics.kpis.rageClicks + analytics.kpis.deadClicks, locale)} signaux`,
+              note: "Visiteurs qui semblent bloqués ou frustrés pendant la navigation."
+            }
+          ]}
+        />
+      </DashboardSection>
 
       {runningStats ? (
         <DashboardSection
