@@ -27,7 +27,9 @@ create table if not exists experiments (
   traffic_split integer not null default 100,
   status text not null default 'draft' check (status in ('draft', 'running', 'paused')),
   experiment_type text not null default 'visual' check (experiment_type in ('visual', 'custom_code', 'popup', 'recommendation')),
-  primary_metric text not null default 'conversion' check (primary_metric in ('page_view', 'click', 'conversion')),
+  primary_metric text not null default 'conversion' check (
+    primary_metric in ('page_view', 'click', 'conversion', 'add_to_cart', 'cta_click', 'checkout_start', 'purchase', 'recommendation_click')
+  ),
   editor_mode text not null default 'visual' check (editor_mode in ('visual', 'custom_code')),
   custom_code text,
   audience_rules jsonb not null default '[]'::jsonb,
