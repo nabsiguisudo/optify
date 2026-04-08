@@ -76,9 +76,7 @@ export default async function SiteAnalyticsPage({
 
       <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
         <GlobalKpiChart timeline={analytics.timeline} />
-        <DashboardSection title={copy.pages.analytics.comparisonTitle} description={copy.pages.analytics.comparisonDescription}>
-          <PeriodComparisonCard comparison={analytics.periodComparison} />
-        </DashboardSection>
+        <PeriodComparisonCard comparison={analytics.periodComparison} />
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
