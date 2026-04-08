@@ -53,7 +53,7 @@ create table if not exists events (
   project_id uuid not null references projects(id) on delete cascade,
   anonymous_id text not null,
   session_id text,
-  experiment_id uuid not null references experiments(id) on delete cascade,
+  experiment_id uuid references experiments(id) on delete cascade,
   variant_key text not null,
   event_type text not null check (
     event_type in (
@@ -127,6 +127,8 @@ create index if not exists idx_events_project_created on events(project_id, crea
 create index if not exists idx_events_variant_type on events(variant_key, event_type);
 create index if not exists idx_events_session on events(session_id);
 create index if not exists idx_session_recordings_project_session on session_recordings(project_id, session_id, chunk_index);
+
+alter table events alter column experiment_id drop not null;
 
 alter table users enable row level security;
 alter table projects enable row level security;

@@ -94,12 +94,18 @@ export async function POST(request: Request) {
   }
 
   const supabase = createSupabaseAdminClient();
+  const normalizeExperimentId = (experimentId: string) => {
+    if (!experimentId || experimentId.startsWith("__")) {
+      return null;
+    }
+    return experimentId;
+  };
   const rows = events.map((payload) => ({
     id: payload.clientEventId ?? randomUUID(),
     project_id: payload.projectId,
     anonymous_id: payload.anonymousId,
     session_id: payload.sessionId ?? null,
-    experiment_id: payload.experimentId,
+    experiment_id: normalizeExperimentId(payload.experimentId),
     variant_key: payload.variantKey,
     event_type: payload.eventType,
     pathname: payload.pathname,
