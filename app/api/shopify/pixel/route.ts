@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
+import { randomUUID } from "crypto";
 import { z } from "zod";
 import { withCors, corsPreflight } from "@/lib/cors";
 import { insertDevEvent, readDevStore } from "@/lib/dev-store";
+import { createSupabaseAdminClient } from "@/lib/supabase";
+import { hasSupabaseEnv } from "@/lib/env";
 
 const shopifyPixelSchema = z.object({
   projectId: z.string().min(1),
@@ -58,16 +61,56 @@ function inferPageType(eventName: string, pathname: string) {
 export async function POST(request: Request) {
   try {
     const payload = shopifyPixelSchema.parse(await request.json());
+    const { href, pathname } = readLocation(payload.context);
+    const pageType = inferPageType(payload.eventName, pathname);
+    const data = payload.data ?? {};
+    const context = payload.context ?? {};
+    const mappedEventType = mapEventType(payload.eventName);
+    const eventContext = {
+      pageType,
+      templateName: pageType,
+      shopifyEventName: payload.eventName,
+      shopDomain: typeof context.document?.location?.host === "string" ? context.document.location.host : undefined,
+      referrer: typeof context.document?.referrer === "string" ? context.document.referrer : undefined,
+      pageTitle: typeof context.document?.title === "string" ? context.document.title : undefined,
+      productId: data.productVariant?.product?.id ?? data.productVariant?.id ?? data.product?.id,
+      productName: data.productVariant?.product?.title ?? data.product?.title,
+      currency: data.checkout?.currencyCode ?? data.cartLine?.cost?.totalAmount?.currencyCode,
+      revenue: Number(data.checkout?.totalPrice?.amount ?? 0) || undefined,
+      value: Number(data.checkout?.totalPrice?.amount ?? data.cartLine?.cost?.totalAmount?.amount ?? 0) || undefined,
+      quantity: Number(data.cartLine?.quantity ?? 1) || 1,
+      searchQuery: typeof data.searchResult?.query === "string" ? data.searchResult.query : undefined,
+      custom: {
+        href
+      }
+    };
+
+    if (hasSupabaseEnv()) {
+      const supabase = createSupabaseAdminClient();
+      const { error } = await supabase.from("events").upsert({
+        id: payload.id ?? randomUUID(),
+        project_id: payload.projectId,
+        anonymous_id: payload.clientId ?? "shopify_customer",
+        session_id: typeof context.session?.id === "string" ? context.session.id : null,
+        experiment_id: null,
+        variant_key: "storefront",
+        event_type: mappedEventType,
+        pathname,
+        context: eventContext
+      }, { onConflict: "id", ignoreDuplicates: true });
+
+      if (error) {
+        return withCors(NextResponse.json({ error: error.message }, { status: 500 }));
+      }
+
+      return withCors(NextResponse.json({ ok: true, mode: "supabase" }));
+    }
+
     const store = await readDevStore();
     const projectExists = store.projects.some((project) => project.id === payload.projectId);
     if (!projectExists) {
       return withCors(NextResponse.json({ ok: true, ignored: true, reason: "unknown_project" }));
     }
-
-    const { href, pathname } = readLocation(payload.context);
-    const pageType = inferPageType(payload.eventName, pathname);
-    const data = payload.data ?? {};
-    const context = payload.context ?? {};
 
     const record = await insertDevEvent({
       clientEventId: payload.id,
@@ -76,29 +119,12 @@ export async function POST(request: Request) {
       sessionId: typeof context.session?.id === "string" ? context.session.id : undefined,
       experimentId: "__shopify__",
       variantKey: "storefront",
-      eventType: mapEventType(payload.eventName),
+      eventType: mappedEventType,
       pathname,
-      context: {
-        pageType,
-        templateName: pageType,
-        shopifyEventName: payload.eventName,
-        shopDomain: typeof context.document?.location?.host === "string" ? context.document.location.host : undefined,
-        referrer: typeof context.document?.referrer === "string" ? context.document.referrer : undefined,
-        pageTitle: typeof context.document?.title === "string" ? context.document.title : undefined,
-        productId: data.productVariant?.product?.id ?? data.productVariant?.id ?? data.product?.id,
-        productName: data.productVariant?.product?.title ?? data.product?.title,
-        currency: data.checkout?.currencyCode ?? data.cartLine?.cost?.totalAmount?.currencyCode,
-        revenue: Number(data.checkout?.totalPrice?.amount ?? 0) || undefined,
-        value: Number(data.checkout?.totalPrice?.amount ?? data.cartLine?.cost?.totalAmount?.amount ?? 0) || undefined,
-        quantity: Number(data.cartLine?.quantity ?? 1) || 1,
-        searchQuery: typeof data.searchResult?.query === "string" ? data.searchResult.query : undefined,
-        custom: {
-          href
-        }
-      }
+      context: eventContext
     });
 
-    return withCors(NextResponse.json({ ok: true, id: record.id }));
+    return withCors(NextResponse.json({ ok: true, id: record.id, mode: "dev-store" }));
   } catch (error) {
     return withCors(NextResponse.json(
       { error: error instanceof Error ? error.message : "Unable to ingest Shopify pixel event" },

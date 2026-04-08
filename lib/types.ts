@@ -293,6 +293,7 @@ export interface ShopifyConnection {
   projectId: string;
   status: "not_connected" | "connected" | "needs_attention";
   shopDomain: string;
+  adminAccessToken?: string;
   shopName?: string;
   storefrontDomain?: string;
   planName?: string;

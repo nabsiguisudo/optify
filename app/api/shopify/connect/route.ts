@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { upsertShopifyConnection } from "@/lib/dev-store";
 import { validateShopifyConnection } from "@/lib/shopify";
+import { createSupabaseAdminClient } from "@/lib/supabase";
+import { hasSupabaseEnv } from "@/lib/env";
 
 const schema = z.object({
   projectId: z.string().min(1),
@@ -17,11 +19,37 @@ export async function POST(request: Request) {
       accessToken: payload.adminAccessToken
     });
 
-    const persisted = await upsertShopifyConnection({
+    const nextConnection = {
       ...connection,
       projectId: payload.projectId,
       adminAccessToken: payload.adminAccessToken
-    });
+    };
+
+    const persisted = hasSupabaseEnv()
+      ? await (async () => {
+        const supabase = createSupabaseAdminClient();
+        const { error } = await supabase.from("shopify_connections").upsert({
+          project_id: nextConnection.projectId,
+          status: nextConnection.status,
+          shop_domain: nextConnection.shopDomain,
+          admin_access_token: nextConnection.adminAccessToken,
+          shop_name: nextConnection.shopName ?? null,
+          storefront_domain: nextConnection.storefrontDomain ?? null,
+          plan_name: nextConnection.planName ?? null,
+          currency_code: nextConnection.currencyCode ?? null,
+          primary_locale: nextConnection.primaryLocale ?? null,
+          connected_at: nextConnection.connectedAt ?? null,
+          last_synced_at: new Date().toISOString(),
+          scopes: nextConnection.scopes,
+          page_types_tracked: nextConnection.pageTypesTracked,
+          active_theme: nextConnection.activeTheme ?? null,
+          themes: nextConnection.themes,
+          install_mode: nextConnection.installMode
+        });
+        if (error) throw new Error(error.message);
+        return nextConnection;
+      })()
+      : await upsertShopifyConnection(nextConnection);
 
     return NextResponse.json({
       connection: {

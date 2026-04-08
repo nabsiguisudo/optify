@@ -119,6 +119,25 @@ create table if not exists subscriptions (
   created_at timestamptz not null default now()
 );
 
+create table if not exists shopify_connections (
+  project_id uuid primary key references projects(id) on delete cascade,
+  status text not null default 'connected' check (status in ('not_connected', 'connected', 'needs_attention')),
+  shop_domain text not null,
+  admin_access_token text,
+  shop_name text,
+  storefront_domain text,
+  plan_name text,
+  currency_code text,
+  primary_locale text,
+  connected_at timestamptz,
+  last_synced_at timestamptz,
+  scopes text[] not null default '{}',
+  page_types_tracked text[] not null default '{}',
+  active_theme jsonb,
+  themes jsonb not null default '[]'::jsonb,
+  install_mode text not null default 'manual_token' check (install_mode in ('manual_token', 'oauth_planned'))
+);
+
 create index if not exists idx_projects_owner on projects(owner_id);
 create index if not exists idx_experiments_project on experiments(project_id);
 create index if not exists idx_variants_experiment on variants(experiment_id);
@@ -137,6 +156,7 @@ alter table variants enable row level security;
 alter table events enable row level security;
 alter table session_recordings enable row level security;
 alter table subscriptions enable row level security;
+alter table shopify_connections enable row level security;
 
 create policy "users can read own profile" on users
 for select using (auth.uid() = id);
@@ -212,3 +232,19 @@ for insert with check (auth.role() = 'service_role');
 create policy "users can manage own subscriptions" on subscriptions
 for all using (owner_id = auth.uid())
 with check (owner_id = auth.uid());
+
+create policy "users can manage own shopify connections" on shopify_connections
+for all using (
+  exists (
+    select 1 from projects
+    where projects.id = shopify_connections.project_id
+      and projects.owner_id = auth.uid()
+  )
+)
+with check (
+  exists (
+    select 1 from projects
+    where projects.id = shopify_connections.project_id
+      and projects.owner_id = auth.uid()
+  )
+);

@@ -326,6 +326,43 @@ export async function getShopifyConnection(projectId: string): Promise<ShopifyCo
     return undefined;
   }
 
+  if (hasSupabaseEnv()) {
+    const supabase = createSupabaseAdminClient();
+    const { data } = await supabase.from("shopify_connections").select("*").eq("project_id", projectId).maybeSingle();
+    if (!data) {
+      return {
+        projectId,
+        status: "not_connected",
+        shopDomain: project.domain,
+        scopes: [],
+        pageTypesTracked: ["index", "product", "collection", "cart", "search", "checkout"],
+        themes: [],
+        installMode: "manual_token"
+      };
+    }
+
+    const relatedEvents = await getProjectEvents(projectId);
+    const pageTypesTracked = [...new Set(relatedEvents.map((event) => event.context?.pageType).filter(Boolean) as string[])];
+    return {
+      projectId: data.project_id,
+      status: data.status,
+      shopDomain: data.shop_domain,
+      adminAccessToken: data.admin_access_token ?? undefined,
+      shopName: data.shop_name ?? undefined,
+      storefrontDomain: data.storefront_domain ?? undefined,
+      planName: data.plan_name ?? undefined,
+      currencyCode: data.currency_code ?? undefined,
+      primaryLocale: data.primary_locale ?? undefined,
+      connectedAt: data.connected_at ?? undefined,
+      lastSyncedAt: data.last_synced_at ?? undefined,
+      scopes: data.scopes ?? [],
+      pageTypesTracked: pageTypesTracked.length > 0 ? pageTypesTracked : data.page_types_tracked ?? [],
+      activeTheme: data.active_theme ?? undefined,
+      themes: data.themes ?? [],
+      installMode: data.install_mode ?? "manual_token"
+    };
+  }
+
   const store = await readDevStore();
   const connection = store.shopifyConnections.find((item) => item.projectId === projectId);
   if (!connection) {

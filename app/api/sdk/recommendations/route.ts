@@ -24,7 +24,7 @@ export async function GET(request: Request) {
     }
 
     const connection = await getShopifyConnection(projectId);
-    const accessToken = (connection as typeof connection & { adminAccessToken?: string })?.adminAccessToken;
+    const accessToken = connection?.adminAccessToken;
     if (!connection?.shopDomain || !accessToken) {
       return withCors(NextResponse.json({ error: "Shopify connection not available" }, { status: 404 }));
     }
