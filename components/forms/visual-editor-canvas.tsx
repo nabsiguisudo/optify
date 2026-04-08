@@ -291,12 +291,14 @@ export function VisualEditorCanvas({
   }, [styleDraft]);
 
   useEffect(() => {
-    const iframe = iframeRef.current;
-    if (!iframe) return;
+    const iframeElement = iframeRef.current;
+    if (!iframeElement) return;
 
     let cleanup: (() => void) | undefined;
 
     function attach() {
+      const iframe = iframeRef.current;
+      if (!iframe) return;
       const doc = iframe.contentDocument;
       const win = iframe.contentWindow;
       if (!doc || !win) return;
@@ -448,11 +450,11 @@ export function VisualEditorCanvas({
       };
     }
 
-    iframe.addEventListener("load", attach);
+    iframeElement.addEventListener("load", attach);
     attach();
 
     return () => {
-      iframe.removeEventListener("load", attach);
+      iframeElement.removeEventListener("load", attach);
       cleanup?.();
     };
   }, []);

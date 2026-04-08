@@ -78,7 +78,7 @@ export default function DemoProductPage() {
               <p className="text-lg font-semibold">{t.demo.howTo}</p>
             </div>
             <div className="mt-5 space-y-4 text-sm text-muted-foreground">
-              {t.demo.steps.map((step, index) => (
+              {t.demo.steps.map((step: string, index: number) => (
                 <p key={step}>{index + 1}. {step}</p>
               ))}
             </div>

@@ -426,6 +426,11 @@ export function buildGlobalAnalytics(statsItems: ExperimentStats[]): GlobalAnaly
       draft: 0,
       paused: 0,
       winners: statsItems.filter((item) => item.winner).length
+    },
+    businessImpact: {
+      cumulativeRevenueUplift: statsItems.reduce((sum, item) => sum + (item.roi?.estimatedRevenueUplift ?? 0), 0),
+      projectedMonthlyImpact: statsItems.reduce((sum, item) => sum + (item.roi?.estimatedRevenueUplift ?? 0), 0) * 30 / 7,
+      launchReadyRevenuePotential: 0
     }
   };
 }

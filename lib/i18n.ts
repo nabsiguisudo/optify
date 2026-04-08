@@ -549,7 +549,7 @@ const dictionary = {
   it: {} as any,
   es: {} as any,
   de: {} as any
-} as const;
+};
 
 dictionary.it = {
   ...dictionary.en,

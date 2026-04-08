@@ -8,6 +8,7 @@ import { getDictionary, resolveLocale, withLang } from "@/lib/i18n";
 export default async function HomePage({ searchParams }: { searchParams: Promise<{ lang?: string }> }) {
   const locale = resolveLocale((await searchParams).lang);
   const t = getDictionary(locale);
+  type SiteFeature = (typeof t.site.features)[number];
 
   return (
     <SiteShell locale={locale}>
@@ -53,7 +54,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           <Card className="bg-[#fffdf8] p-8 shadow-glow">
             <p className="text-sm font-semibold uppercase tracking-[0.16em] text-primary">{t.site.fastOnboarding}</p>
             <div className="mt-6 space-y-6">
-              {t.site.steps.map((step, index) => (
+              {t.site.steps.map((step: string, index: number) => (
                 <div key={step} className="flex items-start gap-4">
                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground">{index + 1}</div>
                   <div>
@@ -68,7 +69,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
 
         <section id="features" className="mx-auto max-w-7xl px-6 pb-12">
           <div className="grid gap-4 lg:grid-cols-3">
-            {t.site.features.map((feature) => (
+            {t.site.features.map((feature: SiteFeature) => (
               <Card key={feature.title} className="bg-white">
                 <p className="text-lg font-semibold">{feature.title}</p>
                 <p className="mt-3 text-sm text-muted-foreground">{feature.body}</p>
