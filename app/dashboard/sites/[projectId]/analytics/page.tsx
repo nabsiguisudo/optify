@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AnalyticsPersonalization } from "@/components/dashboard/analytics-personalization";
 import { FunnelOverviewCard } from "@/components/dashboard/funnel-overview";
 import { GlobalKpiChart } from "@/components/dashboard/global-kpi-chart";
 import { PeriodComparisonCard } from "@/components/dashboard/period-comparison";
@@ -119,6 +120,11 @@ export default async function SiteAnalyticsPage({
           hint={`${formatDashboardPercent(analytics.kpis.checkoutStarts === 0 ? 0 : analytics.kpis.purchases / analytics.kpis.checkoutStarts, locale)} après checkout`}
         />
       </DashboardKpiGrid>
+
+      <AnalyticsPersonalization
+        projectId={projectId}
+        segmentsHref={withLang(`/dashboard/sites/${projectId}/segments`, locale)}
+      />
 
       {!hasAnalyticsData ? (
         <DashboardWidget title="Pourquoi Analytics est vide" description="On préfère un état clair à un faux dashboard rempli de cartes mortes.">
