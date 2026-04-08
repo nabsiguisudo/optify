@@ -3,6 +3,11 @@ import type { RecommendationConfig, ShopifyCatalogItem, ShopifyCollectionItem, S
 
 const SHOPIFY_ADMIN_VERSION = "2025-10";
 
+export function getCanonicalOptifySdkUrl() {
+  const base = env.appUrl.replace(/\/$/, "");
+  return `${base}/optify-sdk.js`;
+}
+
 function normalizeShopDomain(input: string) {
   const trimmed = input.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
   return trimmed.endsWith(".myshopify.com") ? trimmed : `${trimmed}.myshopify.com`;
@@ -308,7 +313,8 @@ export async function fetchRecommendationProducts(input: {
 }
 
 export function buildShopifyInstallAssets(input: { projectId: string; scriptUrl: string }): ShopifyInstallAssets {
-  const scriptTag = `<script src="${input.scriptUrl.replace("https://cdn.optify.ai/sdk.js", "/optify-sdk.js")}" data-project="${input.projectId}"></script>`;
+  const sdkUrl = getCanonicalOptifySdkUrl();
+  const scriptTag = `<script src="${sdkUrl}" data-project="${input.projectId}"></script>`;
   const liquidSnippet = [
     `<script>`,
     `  window.__OPTIFY_SHOPIFY_CONTEXT = {`,
@@ -327,7 +333,7 @@ export function buildShopifyInstallAssets(input: { projectId: string; scriptUrl:
     `  };`,
     `</script>`,
     `<script`,
-    `  src="${input.scriptUrl.replace("https://cdn.optify.ai/sdk.js", "/optify-sdk.js")}"`,
+    `  src="${sdkUrl}"`,
     `  data-project="${input.projectId}"`,
     `  data-shopify-shop="{{ shop.permanent_domain }}"`,
     `  data-shopify-theme="{{ theme.id }}"`,

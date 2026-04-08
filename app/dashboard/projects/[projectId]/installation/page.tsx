@@ -11,6 +11,7 @@ import {
 } from "@/components/dashboard/site-dashboard-primitives";
 import { getInstallationDiagnostic, getLaunchAuditTrail, getOnboardingProgress, getProjectById, getSdkDiagnostics, getShopifyConnection, getShopifyInstallAssets } from "@/lib/data";
 import { getDictionary, resolveLocale } from "@/lib/i18n";
+import { getCanonicalOptifySdkUrl } from "@/lib/shopify";
 import {
   formatDashboardDateTime,
   formatDashboardStatus,
@@ -44,7 +45,7 @@ export default async function InstallationPage({
     redirect(`/dashboard/projects/new?lang=${locale}`);
   }
 
-  const scriptTag = `<script src="${project.scriptUrl.replace("https://cdn.optify.ai/sdk.js", "/optify-sdk.js")}" data-project="${project.id}"></script>`;
+  const scriptTag = `<script src="${getCanonicalOptifySdkUrl()}" data-project="${project.id}"></script>`;
   const progressPercent = Math.round(onboarding.completionRatio * 100);
 
   return (
