@@ -1,12 +1,12 @@
 "use client";
 
 import { createBrowserClient } from "@supabase/ssr";
-import { env, hasSupabaseEnv } from "@/lib/env";
+import { env, hasSupabaseClientEnv } from "@/lib/env";
 
 let browserClient: ReturnType<typeof createBrowserClient> | null = null;
 
 export function createSupabaseBrowserClient() {
-  if (!hasSupabaseEnv()) {
+  if (!hasSupabaseClientEnv()) {
     return null;
   }
 

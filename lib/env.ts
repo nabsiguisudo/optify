@@ -15,8 +15,19 @@ export const env = {
   stripePublishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
 };
 
+export function hasSupabaseClientEnv() {
+  return Boolean(env.supabaseUrl && env.supabaseAnonKey);
+}
+
 export function hasSupabaseEnv() {
   return Boolean(env.supabaseUrl && env.supabaseAnonKey && env.supabaseServiceRoleKey);
+}
+
+export function getSupabaseClientEnv() {
+  return {
+    url: required(env.supabaseUrl, "NEXT_PUBLIC_SUPABASE_URL"),
+    anonKey: required(env.supabaseAnonKey, "NEXT_PUBLIC_SUPABASE_ANON_KEY")
+  };
 }
 
 export function getSupabaseServerEnv() {
