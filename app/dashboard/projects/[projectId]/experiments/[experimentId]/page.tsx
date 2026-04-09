@@ -26,12 +26,20 @@ export default async function ExperimentDetailPage({
     notFound();
   }
 
-  const stats = await getExperimentStats(experimentId);
-  const report = await getDetailedExperimentReport(experimentId, locale);
-  const recommendations = await getRecommendations(experiment.projectId, locale);
-  const sessionDiagnostics = await getSessionDiagnostics(experimentId);
-  const project = await getProjectById(experiment.projectId);
-  const recentProductUrl = await getRecentProjectProductUrl(experiment.projectId);
+  const [statsResult, reportResult, recommendationsResult, sessionDiagnosticsResult, projectResult, recentProductUrlResult] = await Promise.allSettled([
+    getExperimentStats(experimentId),
+    getDetailedExperimentReport(experimentId, locale),
+    getRecommendations(experiment.projectId, locale),
+    getSessionDiagnostics(experimentId),
+    getProjectById(experiment.projectId),
+    getRecentProjectProductUrl(experiment.projectId)
+  ]);
+  const stats = statsResult.status === "fulfilled" ? statsResult.value : undefined;
+  const report = reportResult.status === "fulfilled" ? reportResult.value : undefined;
+  const recommendations = recommendationsResult.status === "fulfilled" ? recommendationsResult.value : [];
+  const sessionDiagnostics = sessionDiagnosticsResult.status === "fulfilled" ? sessionDiagnosticsResult.value : [];
+  const project = projectResult.status === "fulfilled" ? projectResult.value : undefined;
+  const recentProductUrl = recentProductUrlResult.status === "fulfilled" ? recentProductUrlResult.value : undefined;
   const storefrontBase = project?.domain ? `https://${project.domain.replace(/^https?:\/\//, "").replace(/\/$/, "")}` : "";
   const defaultQaUrl = experiment.recommendationConfig?.targetUrl
     ?? recentProductUrl
