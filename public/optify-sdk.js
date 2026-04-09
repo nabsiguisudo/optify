@@ -229,6 +229,24 @@
         }
         if (change.type === "style") {
           element.style.cssText += change.value;
+          if (String(change.value || "").toLowerCase().indexOf("background") !== -1) {
+            element.style.setProperty("background", element.style.background || "", "important");
+            element.style.setProperty("background-color", element.style.backgroundColor || "", "important");
+          }
+          if (String(change.value || "").toLowerCase().indexOf("color") !== -1) {
+            element.style.setProperty("color", element.style.color || "", "important");
+          }
+          if (String(change.value || "").toLowerCase().indexOf("border") !== -1) {
+            element.style.setProperty("border-color", element.style.borderColor || "", "important");
+          }
+          Array.prototype.forEach.call(element.querySelectorAll("*"), function (child) {
+            if (String(change.value || "").toLowerCase().indexOf("color") !== -1) {
+              child.style.setProperty("color", element.style.color || "", "important");
+            }
+            if (String(change.value || "").toLowerCase().indexOf("fill") !== -1) {
+              child.style.setProperty("fill", "currentColor", "important");
+            }
+          });
         }
         appliedCount += 1;
       });

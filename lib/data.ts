@@ -894,6 +894,26 @@ export async function getRecommendations(projectId?: string, locale: Locale = "f
   return buildProductRecommendations(project, locale);
 }
 
+export async function getRecentProjectProductUrl(projectId: string): Promise<string | undefined> {
+  const [project, events] = await Promise.all([
+    getProjectById(projectId),
+    getProjectEvents(projectId)
+  ]);
+
+  if (!project?.domain) {
+    return undefined;
+  }
+
+  const storefrontBase = `https://${project.domain.replace(/^https?:\/\//, "").replace(/\/$/, "")}`;
+  const productEvent = events.find((event) => {
+    if (!event.pathname?.startsWith("/products/")) return false;
+    const pageType = typeof event.context?.pageType === "string" ? event.context.pageType : "";
+    return pageType === "product" || event.eventType === "product_view" || event.eventType === "page_view";
+  });
+
+  return productEvent ? `${storefrontBase}${productEvent.pathname}` : undefined;
+}
+
 async function getProjectEvents(projectId: string): Promise<EventRecord[]> {
   if (!hasSupabaseEnv()) {
     const store = await readDevStore();

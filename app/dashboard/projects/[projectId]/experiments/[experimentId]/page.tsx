@@ -6,7 +6,7 @@ import { ExperimentQaPanel } from "@/components/dashboard/experiment-qa-panel";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { StatsChart } from "@/components/dashboard/stats-chart";
-import { getDetailedExperimentReport, getExperimentById, getExperimentStats, getProjectById, getRecommendations, getSessionDiagnostics } from "@/lib/data";
+import { getDetailedExperimentReport, getExperimentById, getExperimentStats, getProjectById, getRecommendations, getRecentProjectProductUrl, getSessionDiagnostics } from "@/lib/data";
 import { getDictionary, localizeMetric, localizeStatus, resolveLocale } from "@/lib/i18n";
 import { formatNumber, formatPercent } from "@/lib/utils";
 
@@ -30,8 +30,10 @@ export default async function ExperimentDetailPage({
   const recommendations = await getRecommendations(experiment.projectId, locale);
   const sessionDiagnostics = await getSessionDiagnostics(experimentId);
   const project = await getProjectById(experiment.projectId);
+  const recentProductUrl = await getRecentProjectProductUrl(experiment.projectId);
   const storefrontBase = project?.domain ? `https://${project.domain.replace(/^https?:\/\//, "").replace(/\/$/, "")}` : "";
   const defaultQaUrl = experiment.recommendationConfig?.targetUrl
+    ?? recentProductUrl
     ?? (storefrontBase && !experiment.pagePattern.includes("*") ? `${storefrontBase}${experiment.pagePattern}` : storefrontBase);
 
   return (
