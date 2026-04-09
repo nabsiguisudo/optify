@@ -1,5 +1,4 @@
 import { cache } from "react";
-import { unstable_cache } from "next/cache";
 import { demoExperiments, demoProjects, demoSessionDiagnostics, demoStats, demoSuggestions, demoUser } from "@/lib/demo-data";
 import { readDevStore } from "@/lib/dev-store";
 import { buildAudienceInsights, buildProductRecommendations, buildExperimentReport } from "@/lib/insights";
@@ -20,9 +19,6 @@ const clickLikeEventTypes = new Set<string>([
   "purchase",
   "conversion"
 ]);
-
-const PROJECT_DATA_REVALIDATE_SECONDS = 15;
-const ANALYTICS_DATA_REVALIDATE_SECONDS = 8;
 
 export const getCurrentUserOrNull = cache(async (): Promise<User | null> => {
   if (!hasSupabaseClientEnv()) {
@@ -53,24 +49,6 @@ export const getCurrentUser = cache(async (): Promise<User> => {
   return user ?? demoUser;
 });
 
-const getProjectsFromSupabase = unstable_cache(
-  async (userId: string): Promise<Project[]> => {
-    const supabase = await createSupabaseAdminClient();
-    const { data } = await supabase.from("projects").select("*").eq("owner_id", userId).order("created_at", { ascending: false });
-    return (data ?? []).map((project) => ({
-      id: project.id,
-      name: project.name,
-      domain: project.domain,
-      platform: project.platform,
-      publicKey: project.public_key,
-      workspaceId: project.workspace_id,
-      scriptUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/optify-sdk.js`
-    }));
-  },
-  ["projects-by-user"],
-  { revalidate: PROJECT_DATA_REVALIDATE_SECONDS }
-);
-
 export async function getProjects(): Promise<Project[]> {
   if (!hasSupabaseEnv()) {
     const store = await readDevStore();
@@ -80,11 +58,21 @@ export async function getProjects(): Promise<Project[]> {
     }));
   }
 
+  const supabase = await createSupabaseAdminClient();
   const user = await getCurrentUserOrNull();
   if (!user) {
     return [];
   }
-  return getProjectsFromSupabase(user.id);
+  const { data } = await supabase.from("projects").select("*").eq("owner_id", user.id).order("created_at", { ascending: false });
+  return (data ?? []).map((project) => ({
+    id: project.id,
+    name: project.name,
+    domain: project.domain,
+    platform: project.platform,
+    publicKey: project.public_key,
+    workspaceId: project.workspace_id,
+    scriptUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/optify-sdk.js`
+  }));
 }
 
 export async function getVisibleProjects(): Promise<Project[]> {
@@ -104,57 +92,50 @@ export async function getProjectById(projectId: string): Promise<Project | undef
   return projects.find((project) => project.id === projectId);
 }
 
-const getExperimentsByProjectFromSupabase = unstable_cache(
-  async (projectId: string): Promise<Experiment[]> => {
-    const supabase = createSupabaseAdminClient();
-    const { data } = await supabase
-      .from("experiments")
-      .select("*, variants(*)")
-      .eq("project_id", projectId)
-      .order("created_at", { ascending: false });
-
-    return (data ?? []).map((experiment) => ({
-      id: experiment.id,
-      projectId: experiment.project_id,
-      name: experiment.name,
-      hypothesis: experiment.hypothesis,
-      pagePattern: experiment.page_pattern,
-      trafficSplit: experiment.traffic_split,
-      status: experiment.status,
-      workflowState: experiment.workflow_state ?? experiment.status,
-      scheduledFor: experiment.scheduled_for ?? undefined,
-      priority: experiment.priority ?? "medium",
-      exclusionGroup: experiment.exclusion_group ?? undefined,
-      type: experiment.experiment_type ?? "visual",
-      primaryMetric: experiment.primary_metric,
-      createdAt: experiment.created_at,
-      editorMode: experiment.editor_mode,
-      customCode: experiment.custom_code ?? "",
-      audienceRules: experiment.audience_rules ?? [],
-      targeting: experiment.targeting_rules ?? undefined,
-      popupConfig: experiment.popup_config ?? undefined,
-      recommendationConfig: experiment.recommendation_config ?? undefined,
-      variants: (experiment.variants ?? []).map((variant: any) => ({
-        id: variant.id,
-        experimentId: variant.experiment_id,
-        name: variant.name,
-        key: variant.key,
-        allocation: variant.allocation,
-        isControl: variant.is_control,
-        changes: variant.changes
-      }))
-    }));
-  },
-  ["experiments-by-project"],
-  { revalidate: PROJECT_DATA_REVALIDATE_SECONDS }
-);
-
 export async function getExperimentsByProject(projectId: string): Promise<Experiment[]> {
   if (!hasSupabaseEnv()) {
     const store = await readDevStore();
     return store.experiments.filter((experiment) => experiment.projectId === projectId);
   }
-  return getExperimentsByProjectFromSupabase(projectId);
+
+  const supabase = createSupabaseAdminClient();
+  const { data } = await supabase
+    .from("experiments")
+    .select("*, variants(*)")
+    .eq("project_id", projectId)
+    .order("created_at", { ascending: false });
+
+  return (data ?? []).map((experiment) => ({
+    id: experiment.id,
+    projectId: experiment.project_id,
+    name: experiment.name,
+    hypothesis: experiment.hypothesis,
+    pagePattern: experiment.page_pattern,
+    trafficSplit: experiment.traffic_split,
+    status: experiment.status,
+    workflowState: experiment.workflow_state ?? experiment.status,
+    scheduledFor: experiment.scheduled_for ?? undefined,
+    priority: experiment.priority ?? "medium",
+    exclusionGroup: experiment.exclusion_group ?? undefined,
+    type: experiment.experiment_type ?? "visual",
+    primaryMetric: experiment.primary_metric,
+    createdAt: experiment.created_at,
+    editorMode: experiment.editor_mode,
+    customCode: experiment.custom_code ?? "",
+    audienceRules: experiment.audience_rules ?? [],
+    targeting: experiment.targeting_rules ?? undefined,
+    popupConfig: experiment.popup_config ?? undefined,
+    recommendationConfig: experiment.recommendation_config ?? undefined,
+    variants: (experiment.variants ?? []).map((variant: any) => ({
+      id: variant.id,
+      experimentId: variant.experiment_id,
+      name: variant.name,
+      key: variant.key,
+      allocation: variant.allocation,
+      isControl: variant.is_control,
+      changes: variant.changes
+    }))
+  }));
 }
 
 export async function getExperimentById(experimentId: string): Promise<Experiment | undefined> {
@@ -608,11 +589,27 @@ export async function getExperimentStats(
     return computeExperimentStats(experimentId, experiment.variants, store.events, options);
   }
 
+  const supabase = createSupabaseAdminClient();
   const experiment = await getExperimentById(experimentId);
   if (!experiment) {
     return undefined;
   }
-  const events = (await getProjectEvents(experiment.projectId)).filter((event) => event.experimentId === experimentId);
+
+  const { data } = await supabase.from("events").select("*").eq("experiment_id", experimentId);
+
+  const events: EventRecord[] = (data ?? []).map((event: any) => ({
+    id: event.id,
+    projectId: event.project_id,
+    anonymousId: event.anonymous_id,
+    sessionId: event.session_id ?? undefined,
+    experimentId: event.experiment_id ?? "__sdk__",
+    variantKey: event.variant_key,
+    eventType: event.event_type,
+    pathname: event.pathname,
+    timestamp: event.created_at,
+    context: event.context ?? undefined
+  }));
+
   return computeExperimentStats(experimentId, experiment.variants, events, options);
 }
 
@@ -926,30 +923,23 @@ async function getProjectEvents(projectId: string): Promise<EventRecord[]> {
     const store = await readDevStore();
     return store.events.filter((event) => event.projectId === projectId);
   }
-  return getProjectEventsFromSupabase(projectId);
+
+  const supabase = createSupabaseAdminClient();
+  const { data } = await supabase.from("events").select("*").eq("project_id", projectId).order("created_at", { ascending: false });
+
+  return (data ?? []).map((event: any) => ({
+    id: event.id,
+    projectId: event.project_id,
+    anonymousId: event.anonymous_id,
+    sessionId: event.session_id ?? undefined,
+    experimentId: event.experiment_id ?? "__sdk__",
+    variantKey: event.variant_key,
+    eventType: event.event_type,
+    pathname: event.pathname,
+    timestamp: event.created_at,
+    context: event.context ?? undefined
+  }));
 }
-
-const getProjectEventsFromSupabase = unstable_cache(
-  async (projectId: string): Promise<EventRecord[]> => {
-    const supabase = createSupabaseAdminClient();
-    const { data } = await supabase.from("events").select("*").eq("project_id", projectId).order("created_at", { ascending: false });
-
-    return (data ?? []).map((event: any) => ({
-      id: event.id,
-      projectId: event.project_id,
-      anonymousId: event.anonymous_id,
-      sessionId: event.session_id ?? undefined,
-      experimentId: event.experiment_id ?? "__sdk__",
-      variantKey: event.variant_key,
-      eventType: event.event_type,
-      pathname: event.pathname,
-      timestamp: event.created_at,
-      context: event.context ?? undefined
-    }));
-  },
-  ["events-by-project"],
-  { revalidate: ANALYTICS_DATA_REVALIDATE_SECONDS }
-);
 
 async function getProjectRecordingChunks(projectId: string): Promise<SessionRecordingChunk[]> {
   if (!hasSupabaseEnv()) {
@@ -959,34 +949,26 @@ async function getProjectRecordingChunks(projectId: string): Promise<SessionReco
       .sort((a, b) => a.startedAt.localeCompare(b.startedAt));
   }
 
-  return getProjectRecordingChunksFromSupabase(projectId);
+  const supabase = createSupabaseAdminClient();
+  const { data } = await supabase
+    .from("session_recordings")
+    .select("*")
+    .eq("project_id", projectId)
+    .order("started_at", { ascending: true })
+    .order("chunk_index", { ascending: true });
+
+  return (data ?? []).map((recording: any) => ({
+    id: recording.id,
+    projectId: recording.project_id,
+    anonymousId: recording.anonymous_id,
+    sessionId: recording.session_id,
+    startedAt: recording.started_at,
+    endedAt: recording.ended_at,
+    chunkIndex: recording.chunk_index,
+    frameCount: recording.frame_count ?? (recording.frames ?? []).length,
+    frames: (recording.frames ?? []) as SessionRecordingFrame[]
+  }));
 }
-
-const getProjectRecordingChunksFromSupabase = unstable_cache(
-  async (projectId: string): Promise<SessionRecordingChunk[]> => {
-    const supabase = createSupabaseAdminClient();
-    const { data } = await supabase
-      .from("session_recordings")
-      .select("*")
-      .eq("project_id", projectId)
-      .order("started_at", { ascending: true })
-      .order("chunk_index", { ascending: true });
-
-    return (data ?? []).map((recording: any) => ({
-      id: recording.id,
-      projectId: recording.project_id,
-      anonymousId: recording.anonymous_id,
-      sessionId: recording.session_id,
-      startedAt: recording.started_at,
-      endedAt: recording.ended_at,
-      chunkIndex: recording.chunk_index,
-      frameCount: recording.frame_count ?? (recording.frames ?? []).length,
-      frames: (recording.frames ?? []) as SessionRecordingFrame[]
-    }));
-  },
-  ["recordings-by-project"],
-  { revalidate: ANALYTICS_DATA_REVALIDATE_SECONDS }
-);
 
 async function getProjectRecordingFrames(projectId: string) {
   const chunks = await getProjectRecordingChunks(projectId);
