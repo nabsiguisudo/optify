@@ -18,6 +18,7 @@
   var sessionStart = pageStart;
   var scrollMilestones = {};
   var recommendationObserver = null;
+  var variantReapplyObservers = {};
   var activeExperiments = [];
   var assignments = {};
   var clickHistory = [];
@@ -263,6 +264,40 @@
       debugState.experimentDetails[experimentId].appliedCount = appliedCount;
     }
     return appliedCount;
+  }
+
+  function scheduleVariantReapply(experiment, variant) {
+    if (!experiment || !variant || !variant.changes || !variant.changes.length) return;
+    if (variantReapplyObservers[experiment.id]) return;
+
+    [120, 600, 1600, 3200].forEach(function (delay) {
+      window.setTimeout(function () {
+        applyChanges(variant.changes || [], experiment.id, variant.key);
+      }, delay);
+    });
+
+    if (!("MutationObserver" in window)) return;
+    var throttled = false;
+    var observer = new MutationObserver(function () {
+      if (throttled) return;
+      throttled = true;
+      window.setTimeout(function () {
+        throttled = false;
+        applyChanges(variant.changes || [], experiment.id, variant.key);
+      }, 180);
+    });
+    observer.observe(document.documentElement, {
+      childList: true,
+      subtree: true,
+      attributes: true
+    });
+    variantReapplyObservers[experiment.id] = observer;
+    window.setTimeout(function () {
+      if (variantReapplyObservers[experiment.id]) {
+        variantReapplyObservers[experiment.id].disconnect();
+        delete variantReapplyObservers[experiment.id];
+      }
+    }, 5000);
   }
 
   function applyCustomCode(code) {
@@ -1355,6 +1390,7 @@
         };
 
         applyChanges(variant.changes || [], experiment.id, variant.key);
+        scheduleVariantReapply(experiment, variant);
         if (variant.key !== "A") {
           applyCustomCode(experiment.customCode);
         }
