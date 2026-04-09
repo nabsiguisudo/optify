@@ -340,6 +340,37 @@ export async function updateDevExperimentWorkflow(input: {
   });
 }
 
+export async function updateDevExperimentRollout(input: {
+  experimentId: string;
+  trafficSplit: number;
+  status?: ExperimentStatus;
+  workflowState?: WorkflowState;
+}) {
+  return mutateDevStore(async (store) => {
+    const experiment = store.experiments.find((item) => item.id === input.experimentId);
+    if (!experiment) {
+      throw new Error("Experiment not found");
+    }
+
+    experiment.trafficSplit = input.trafficSplit;
+    if (input.status) {
+      experiment.status = input.status;
+    }
+    if (input.workflowState) {
+      experiment.workflowState = input.workflowState;
+    } else if (input.status) {
+      experiment.workflowState =
+        input.status === "running"
+          ? "running"
+          : input.status === "paused"
+            ? "paused"
+            : "draft";
+    }
+
+    return experiment;
+  });
+}
+
 export async function insertDevEvent(event: Omit<EventRecord, "id" | "timestamp">) {
   return mutateDevStore(async (store) => {
     if (event.clientEventId) {

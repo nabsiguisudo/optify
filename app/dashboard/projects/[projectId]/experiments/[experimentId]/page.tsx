@@ -3,6 +3,7 @@ import { RecommendationGrid } from "@/components/dashboard/recommendation-grid";
 import { KpiTimeSeries } from "@/components/dashboard/kpi-timeseries";
 import { SessionDiagnostics } from "@/components/dashboard/session-diagnostics";
 import { ExperimentQaPanel } from "@/components/dashboard/experiment-qa-panel";
+import { ExperimentRolloutControls } from "@/components/dashboard/experiment-rollout-controls";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { StatsChart } from "@/components/dashboard/stats-chart";
@@ -14,10 +15,10 @@ export default async function ExperimentDetailPage({
   params,
   searchParams
 }: {
-  params: Promise<{ experimentId: string }>;
+  params: Promise<{ projectId: string; experimentId: string }>;
   searchParams: Promise<{ lang?: string }>;
 }) {
-  const { experimentId } = await params;
+  const { experimentId, projectId } = await params;
   const locale = resolveLocale((await searchParams).lang);
   const t = getDictionary(locale);
   const experiment = await getExperimentById(experimentId);
@@ -57,6 +58,13 @@ export default async function ExperimentDetailPage({
       <ExperimentQaPanel
         experimentId={experiment.id}
         defaultTargetUrl={defaultQaUrl}
+      />
+
+      <ExperimentRolloutControls
+        projectId={projectId}
+        experimentId={experiment.id}
+        initialTrafficSplit={experiment.trafficSplit}
+        initialStatus={experiment.status}
       />
 
       <div className="grid gap-4 lg:grid-cols-3">

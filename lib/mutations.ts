@@ -1,7 +1,7 @@
 import { randomUUID } from "crypto";
 import { z } from "zod";
 import { createSupabaseAdminClient } from "@/lib/supabase";
-import { createDevExperiment, createDevProject } from "@/lib/dev-store";
+import { createDevExperiment, createDevProject, updateDevExperimentRollout } from "@/lib/dev-store";
 import { getCurrentUser } from "@/lib/data";
 import { hasSupabaseEnv } from "@/lib/env";
 import type {
@@ -212,6 +212,14 @@ export const createExperimentSchema = z
       walk(value.targeting);
     }
   });
+
+export const updateExperimentRolloutSchema = z.object({
+  projectId: z.string().min(1),
+  experimentId: z.string().min(1),
+  trafficSplit: z.coerce.number().min(1).max(100),
+  status: z.enum(["draft", "running", "paused"]).optional(),
+  workflowState: z.enum(["draft", "ready_for_review", "approved", "scheduled", "running", "paused"]).optional()
+});
 
 function buildLegacyAudienceRules(targeting?: ExperimentTargetingGroup): AudienceRule[] {
   if (!targeting) return [];
@@ -546,4 +554,50 @@ export async function createExperiment(input: z.infer<typeof createExperimentSch
       changes: variant.changes
     }))
   };
+}
+
+export async function updateExperimentRollout(input: z.infer<typeof updateExperimentRolloutSchema>): Promise<Experiment> {
+  const payload = updateExperimentRolloutSchema.parse(input);
+
+  if (!hasSupabaseEnv()) {
+    return updateDevExperimentRollout({
+      experimentId: payload.experimentId,
+      trafficSplit: payload.trafficSplit,
+      status: payload.status,
+      workflowState: payload.workflowState
+    });
+  }
+
+  const supabase = createSupabaseAdminClient();
+  const nextStatus = payload.status ?? (payload.workflowState === "running" ? "running" : payload.workflowState === "paused" ? "paused" : undefined);
+  const nextWorkflowState = payload.workflowState ?? nextStatus;
+  const updatePayload: Record<string, unknown> = {
+    traffic_split: payload.trafficSplit
+  };
+
+  if (nextStatus) {
+    updatePayload.status = nextStatus;
+  }
+
+  if (nextWorkflowState) {
+    updatePayload.workflow_state = nextWorkflowState;
+  }
+
+  const { error } = await supabase
+    .from("experiments")
+    .update(updatePayload)
+    .eq("id", payload.experimentId)
+    .eq("project_id", payload.projectId);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const { getExperimentById } = await import("@/lib/data");
+  const experiment = await getExperimentById(payload.experimentId);
+  if (!experiment) {
+    throw new Error("Experiment not found after update.");
+  }
+
+  return experiment;
 }
