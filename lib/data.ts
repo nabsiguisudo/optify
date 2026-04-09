@@ -25,19 +25,23 @@ export const getCurrentUserOrNull = cache(async (): Promise<User | null> => {
     return demoUser;
   }
 
-  const supabase = await createSupabaseServerClient();
-  const result = await supabase?.auth.getUser();
-  const user = result?.data.user;
+  try {
+    const supabase = await createSupabaseServerClient();
+    const result = await supabase?.auth.getUser();
+    const user = result?.data.user;
 
-  if (!user) {
+    if (!user) {
+      return null;
+    }
+
+    return {
+      id: user.id,
+      email: user.email ?? "",
+      fullName: user.user_metadata.full_name ?? user.email ?? "Workspace owner"
+    };
+  } catch {
     return null;
   }
-
-  return {
-    id: user.id,
-    email: user.email ?? "",
-    fullName: user.user_metadata.full_name ?? user.email ?? "Workspace owner"
-  };
 });
 
 export const getCurrentUser = cache(async (): Promise<User> => {
