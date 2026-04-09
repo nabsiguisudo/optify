@@ -39,11 +39,15 @@ export async function GET(_: Request, { params }: { params: Promise<{ projectId:
       }))
     }));
 
-  return withCors(NextResponse.json({
+  const response = NextResponse.json({
     projectId: project.id,
     publicKey: project.publicKey,
     experiments
-  }));
+  });
+  response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+  response.headers.set("Pragma", "no-cache");
+  response.headers.set("Expires", "0");
+  return withCors(response);
 }
 
 export function OPTIONS() {

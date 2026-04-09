@@ -1402,8 +1402,9 @@
     });
   }
 
-  fetch(origin + "/api/sdk/config/" + projectId, {
-    headers: { "ngrok-skip-browser-warning": "true" }
+  fetch(origin + "/api/sdk/config/" + projectId + "?ts=" + Date.now(), {
+    headers: { "ngrok-skip-browser-warning": "true" },
+    cache: "no-store"
   })
     .then(function (response) {
       return response.json();
