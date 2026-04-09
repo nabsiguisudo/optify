@@ -371,7 +371,7 @@ export function ExperimentForm({ projectId, locale = "fr" }: { projectId: string
       setLoading(false);
       return;
     }
-    router.push(withLang(`/dashboard/projects/${projectId}/experiments/${data.experiment.id}`, currentLocale));
+    window.location.assign(withLang(`/dashboard/sites/${projectId}/experiments`, currentLocale));
   }
 
   return (
