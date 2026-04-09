@@ -2,10 +2,11 @@ import { notFound } from "next/navigation";
 import { RecommendationGrid } from "@/components/dashboard/recommendation-grid";
 import { KpiTimeSeries } from "@/components/dashboard/kpi-timeseries";
 import { SessionDiagnostics } from "@/components/dashboard/session-diagnostics";
+import { ExperimentQaPanel } from "@/components/dashboard/experiment-qa-panel";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { StatsChart } from "@/components/dashboard/stats-chart";
-import { getDetailedExperimentReport, getExperimentById, getExperimentStats, getRecommendations, getSessionDiagnostics } from "@/lib/data";
+import { getDetailedExperimentReport, getExperimentById, getExperimentStats, getProjectById, getRecommendations, getSessionDiagnostics } from "@/lib/data";
 import { getDictionary, localizeMetric, localizeStatus, resolveLocale } from "@/lib/i18n";
 import { formatNumber, formatPercent } from "@/lib/utils";
 
@@ -28,6 +29,10 @@ export default async function ExperimentDetailPage({
   const report = await getDetailedExperimentReport(experimentId, locale);
   const recommendations = await getRecommendations(experiment.projectId, locale);
   const sessionDiagnostics = await getSessionDiagnostics(experimentId);
+  const project = await getProjectById(experiment.projectId);
+  const storefrontBase = project?.domain ? `https://${project.domain.replace(/^https?:\/\//, "").replace(/\/$/, "")}` : "";
+  const defaultQaUrl = experiment.recommendationConfig?.targetUrl
+    ?? (storefrontBase && !experiment.pagePattern.includes("*") ? `${storefrontBase}${experiment.pagePattern}` : storefrontBase);
 
   return (
     <div className="space-y-6">
@@ -46,6 +51,11 @@ export default async function ExperimentDetailPage({
           {stats?.winner ? <Badge className="bg-primary text-white">{t.common.winner} {stats.winner}</Badge> : null}
         </div>
       </Card>
+
+      <ExperimentQaPanel
+        experimentId={experiment.id}
+        defaultTargetUrl={defaultQaUrl}
+      />
 
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="bg-white">
