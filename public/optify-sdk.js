@@ -874,6 +874,12 @@
 
   function registerBuilderMode() {
     if (!builderMode) return;
+    if (!document.body) {
+      document.addEventListener("DOMContentLoaded", registerBuilderMode, { once: true });
+      return;
+    }
+    if (window.__optifyBuilderRegistered) return;
+    window.__optifyBuilderRegistered = true;
     var builderScope = runtimeUrl.searchParams.get("optify_builder_scope") || "recommendation";
     var initialSelector = runtimeUrl.searchParams.get("optify_builder_selector") || "";
     var initialText = runtimeUrl.searchParams.get("optify_builder_text") || "";
