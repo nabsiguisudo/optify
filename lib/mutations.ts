@@ -583,11 +583,20 @@ export async function updateExperimentRollout(input: z.infer<typeof updateExperi
     updatePayload.workflow_state = nextWorkflowState;
   }
 
-  const { error } = await supabase
+  let { error } = await supabase
     .from("experiments")
     .update(updatePayload)
     .eq("id", payload.experimentId)
     .eq("project_id", payload.projectId);
+
+  if (error && error.message.includes("workflow_state")) {
+    delete updatePayload.workflow_state;
+    ({ error } = await supabase
+      .from("experiments")
+      .update(updatePayload)
+      .eq("id", payload.experimentId)
+      .eq("project_id", payload.projectId));
+  }
 
   if (error) {
     throw new Error(error.message);
