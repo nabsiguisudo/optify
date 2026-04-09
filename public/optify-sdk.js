@@ -198,19 +198,72 @@
 
   function resolveChangeTargets(change) {
     var selectors = getFallbackSelectors(change.selector);
+    var firstMatch = null;
+
+    function isVisibleElement(element) {
+      if (!element) return false;
+      var rect = element.getBoundingClientRect ? element.getBoundingClientRect() : null;
+      var style = window.getComputedStyle ? window.getComputedStyle(element) : null;
+      if (!rect) return false;
+      if (rect.width <= 0 || rect.height <= 0) return false;
+      if (style && (style.display === "none" || style.visibility === "hidden" || style.opacity === "0")) return false;
+      if (element.disabled) return false;
+      return true;
+    }
+
+    function scoreElement(element) {
+      var score = 0;
+      var tag = element && element.tagName ? element.tagName.toLowerCase() : "";
+      var text = (element && element.textContent ? element.textContent : "").toLowerCase();
+      var type = element && element.getAttribute ? (element.getAttribute("type") || "").toLowerCase() : "";
+      var name = element && element.getAttribute ? (element.getAttribute("name") || "").toLowerCase() : "";
+      var id = element && element.id ? element.id.toLowerCase() : "";
+      var className = element && typeof element.className === "string" ? element.className.toLowerCase() : "";
+
+      if (isVisibleElement(element)) score += 100;
+      if (tag === "button") score += 60;
+      if (type === "submit") score += 40;
+      if (name === "add") score += 40;
+      if (id.indexOf("productsubmitbutton") !== -1) score += 40;
+      if (className.indexOf("product-form__submit") !== -1) score += 35;
+      if (text.indexOf("add to cart") !== -1 || text.indexOf("ajouter au panier") !== -1) score += 30;
+      return score;
+    }
+
     for (var index = 0; index < selectors.length; index += 1) {
       try {
-        var elements = document.querySelectorAll(selectors[index]);
+        var elements = Array.prototype.slice.call(document.querySelectorAll(selectors[index]));
         if (elements && elements.length) {
-          return {
-            selector: selectors[index],
-            elements: elements
-          };
+          if (!firstMatch) {
+            firstMatch = {
+              selector: selectors[index],
+              elements: elements
+            };
+          }
+          var bestElements = elements
+            .map(function (element) {
+              return { element: element, score: scoreElement(element) };
+            })
+            .sort(function (left, right) {
+              return right.score - left.score;
+            })
+            .filter(function (entry) {
+              return entry.score > 0;
+            })
+            .map(function (entry) {
+              return entry.element;
+            });
+          if (bestElements.length) {
+            return {
+              selector: selectors[index],
+              elements: bestElements
+            };
+          }
         }
       } catch (error) {}
     }
 
-    return {
+    return firstMatch || {
       selector: change.selector,
       elements: []
     };
