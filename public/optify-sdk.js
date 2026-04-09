@@ -1048,6 +1048,7 @@
 
     function resolveTarget(eventTarget) {
       if (!eventTarget || !eventTarget.closest) return null;
+      if (eventTarget.closest("[data-optify-builder-ui='true']")) return null;
       var target = eventTarget.closest("button,a,input[type='submit'],[role='button'],section,aside,div,li,article,header,footer,main");
       if (!target || !target.getAttribute) return null;
       if (target.getAttribute("data-optify-builder-ui") === "true") return null;
