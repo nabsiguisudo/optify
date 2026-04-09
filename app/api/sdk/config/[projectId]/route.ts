@@ -1,11 +1,20 @@
 import { NextResponse } from "next/server";
 import { withCors, corsPreflight } from "@/lib/cors";
 import { getExperimentsByProject, getProjectById } from "@/lib/data";
+import { hasSupabaseEnv } from "@/lib/env";
+import { createSupabaseAdminClient } from "@/lib/supabase";
 import type { Variant } from "@/lib/types";
 
 export async function GET(_: Request, { params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
-  const project = await getProjectById(projectId);
+  const project = hasSupabaseEnv()
+    ? await createSupabaseAdminClient()
+        .from("projects")
+        .select("id, public_key")
+        .eq("id", projectId)
+        .maybeSingle()
+        .then(({ data }) => data ? { id: data.id, publicKey: data.public_key } : undefined)
+    : await getProjectById(projectId);
   if (!project) {
     return withCors(NextResponse.json({ error: "Project not found" }, { status: 404 }));
   }
