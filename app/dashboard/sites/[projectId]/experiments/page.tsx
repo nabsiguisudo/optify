@@ -24,10 +24,12 @@ export default async function SiteExperimentsPage({
   const { projectId } = await params;
   const locale = resolveLocale((await searchParams).lang);
   const copy = getSiteDashboardCopy(locale);
-  const project = await getProjectById(projectId);
+  const projectPromise = getProjectById(projectId);
+  const experimentsPromise = getExperimentsByProject(projectId);
+  const project = await projectPromise;
   if (!project) notFound();
 
-  const experiments = await getExperimentsByProject(projectId);
+  const experiments = await experimentsPromise;
   const statsEntries = await Promise.all(experiments.map(async (experiment) => [experiment.id, await getExperimentStats(experiment.id)] as const));
   const statsByExperiment = Object.fromEntries(statsEntries);
   const aggregate = Object.values(statsByExperiment).reduce(

@@ -52,10 +52,12 @@ export default async function SiteOverviewPage({
   const { projectId } = await params;
   const locale = resolveLocale((await searchParams).lang);
   const copy = getSiteDashboardCopy(locale);
-  const project = await getProjectById(projectId);
+  const projectPromise = getProjectById(projectId);
+  const experimentsPromise = getExperimentsByProject(projectId);
+  const project = await projectPromise;
   if (!project) notFound();
 
-  const experiments = await getExperimentsByProject(projectId);
+  const experiments = await experimentsPromise;
   const runningExperiment = experiments.find((experiment) => experiment.status === "running");
   const [analytics, behavior, onboarding, sessions] = await Promise.all([
     getProjectAnalytics(projectId),

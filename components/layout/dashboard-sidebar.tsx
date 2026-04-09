@@ -94,6 +94,7 @@ export function DashboardSidebar({
             {projects.map((project) => (
               <Link
                 key={project.id}
+                prefetch
                 href={withQuery(buildHref(pathname, project.id))}
                 className={cn(
                   "block rounded-2xl border px-3 py-3 transition",
@@ -107,7 +108,7 @@ export function DashboardSidebar({
                 <p className="mt-1 truncate text-xs text-muted-foreground">{project.domain}</p>
               </Link>
             ))}
-            <Link href={withQuery("/dashboard/projects/new")} className="mt-2 flex items-center gap-2 rounded-2xl border border-dashed border-border px-3 py-3 text-sm text-muted-foreground transition hover:bg-secondary/40">
+            <Link prefetch href={withQuery("/dashboard/projects/new")} className="mt-2 flex items-center gap-2 rounded-2xl border border-dashed border-border px-3 py-3 text-sm text-muted-foreground transition hover:bg-secondary/40">
               <Wrench className="h-4 w-4" />
               {copy.nav.addSite}
             </Link>
@@ -128,6 +129,7 @@ export function DashboardSidebar({
                   return (
                     <Link
                       key={item.href}
+                      prefetch
                       href={withQuery(item.href)}
                       className={cn(
                         "flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm transition",
@@ -146,11 +148,11 @@ export function DashboardSidebar({
           <div>
             <p className="mb-2 px-2 text-xs font-medium text-muted-foreground">{copy.nav.workspace}</p>
             <div className="space-y-1">
-              <Link href={withQuery("/dashboard/shopify")} className="flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm text-muted-foreground transition hover:bg-secondary hover:text-foreground">
+              <Link prefetch href={withQuery("/dashboard/shopify")} className="flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm text-muted-foreground transition hover:bg-secondary hover:text-foreground">
                 <ShoppingBag className="h-4 w-4" />
                 {copy.nav.shopifyHub}
               </Link>
-              <Link href={withQuery("/dashboard/billing")} className="flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm text-muted-foreground transition hover:bg-secondary hover:text-foreground">
+              <Link prefetch href={withQuery("/dashboard/billing")} className="flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm text-muted-foreground transition hover:bg-secondary hover:text-foreground">
                 <CreditCard className="h-4 w-4" />
                 {copy.nav.billing}
               </Link>
