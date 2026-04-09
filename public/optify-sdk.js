@@ -1088,6 +1088,11 @@
       if (window.opener && typeof window.opener.postMessage === "function") {
         window.opener.postMessage(payload, builderOrigin || "*");
       }
+      if (window.opener && typeof window.opener.focus === "function") {
+        try {
+          window.opener.focus();
+        } catch (error) {}
+      }
     }
 
     document.addEventListener("mousemove", function (event) {
@@ -1151,6 +1156,11 @@
     if (sendButton) {
       sendButton.addEventListener("click", function () {
         sendSelection();
+        window.setTimeout(function () {
+          try {
+            window.close();
+          } catch (error) {}
+        }, 120);
       });
     }
 

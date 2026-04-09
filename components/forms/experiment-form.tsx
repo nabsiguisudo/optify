@@ -133,7 +133,7 @@ function RuleNode({ node, depth, onChange, onDelete, onAddCondition, onAddGroup 
       </div>
       <div className="mt-4 flex flex-wrap gap-2">
         <button type="button" onClick={() => onAddCondition(node.id)} className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-medium hover:bg-[#f5efe4]"><Plus className="h-4 w-4" />Ajouter une condition</button>
-        <button type="button" onClick={() => onAddGroup(node.id)} className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-medium hover:bg-[#f5efe4]"><Plus className="h-4 w-4" />Ajouter un groupe</button>
+        {depth === 0 ? <button type="button" onClick={() => onAddGroup(node.id)} className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-medium hover:bg-[#f5efe4]"><Plus className="h-4 w-4" />Ajouter un groupe OU</button> : null}
       </div>
     </div>
   );
@@ -383,10 +383,9 @@ export function ExperimentForm({ projectId, locale = "fr" }: { projectId: string
           <p className="mt-2 max-w-3xl text-sm text-white/80">Une structure plus proche de Dynamic Yield: type de campagne, contenu, audience, trafic, puis lancement.</p>
         </div>
 
-        <div className="grid gap-6 xl:grid-cols-[1.18fr_0.82fr]">
-          <div className="space-y-6">
+        <div className="space-y-6">
             <div className="rounded-[1.8rem] border border-[#eadfce] bg-white p-6">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#a96532]">Type d'experience</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#a96532]">Type d'expérience</p>
               <div className="mt-5 grid gap-4 lg:grid-cols-2">
                 {[
                   { key: "visual" as const, icon: LayoutTemplate, title: "Visual edit", body: "Modifier un element du DOM existant." },
@@ -404,29 +403,22 @@ export function ExperimentForm({ projectId, locale = "fr" }: { projectId: string
                   );
                 })}
               </div>
-              <div className="mt-4 rounded-[1.4rem] border border-[#f1d2c5] bg-[#fff5ef] p-4">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <p className="font-medium text-[#241b13]">Preset recommande</p>
-                    <p className="mt-1 text-sm text-[#6f6458]">Pre-remplir un test simple 50/50 sur le bouton d'ajout au panier.</p>
-                  </div>
-                  <Button type="button" variant="outline" onClick={applyBlueCartPreset}>Pre-remplir le test ATC bleu</Button>
-                </div>
-              </div>
             </div>
 
             <div className="rounded-[1.8rem] border border-[#eadfce] bg-white p-6">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#a96532]">Fondamentaux</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#a96532]">Base de l'expérience</p>
+              <p className="mt-2 text-sm text-[#6f6458]">Donne un nom clair, la page a modifier, puis l'objectif attendu. Le reste se construit ensuite.</p>
               <div className="mt-5 grid gap-4 md:grid-cols-2">
-                <Input placeholder="Nom de l'experience" value={name} onChange={(event) => setName(event.target.value)} />
+                <Input placeholder="Nom de l'expérience" value={name} onChange={(event) => setName(event.target.value)} />
                 <Input placeholder="/products/*" value={pagePattern} onChange={(event) => setPagePattern(event.target.value)} />
               </div>
-              <div className="mt-4"><Textarea placeholder="Hypothese business et comportementale" value={hypothesis} onChange={(event) => setHypothesis(event.target.value)} /></div>
+              <div className="mt-4"><Textarea placeholder="Pourquoi ce test existe et quel impact tu attends" value={hypothesis} onChange={(event) => setHypothesis(event.target.value)} /></div>
             </div>
 
             {(experienceType === "visual" || experienceType === "custom_code") ? (
               <div className="rounded-[1.8rem] border border-[#eadfce] bg-white p-6">
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#a96532]">Visual experience</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#a96532]">Experience visuelle</p>
+                <p className="mt-2 text-sm text-[#6f6458]">Ouvre la vraie boutique, clique l'element a modifier, valide, puis ajuste seulement si besoin le texte ou le style de la variante.</p>
                 <div className="mt-5 space-y-4">
                   <VisualEditorCanvas
                     targetUrl={visualTargetUrl}
@@ -435,18 +427,28 @@ export function ExperimentForm({ projectId, locale = "fr" }: { projectId: string
                     pickerStatus={visualPickerStatus}
                     selectedLabel={visualSelectionLabel}
                     selector={selector}
+                    variantText={variantBText}
+                    variantStyle={variantBStyle}
                   />
-                  <Input placeholder="Selecteur CSS" value={selector} onChange={(event) => setSelector(event.target.value)} />
+                  <Input placeholder="Selecteur CSS cible" value={selector} onChange={(event) => setSelector(event.target.value)} />
                   <div className="grid gap-4 md:grid-cols-2">
-                    <Input placeholder="Texte variante B" value={variantBText} onChange={(event) => setVariantBText(event.target.value)} />
-                    {variants === 3 ? <Input placeholder="Texte variante C" value={variantCText} onChange={(event) => setVariantCText(event.target.value)} /> : null}
+                    <Input placeholder="Texte de la variante B" value={variantBText} onChange={(event) => setVariantBText(event.target.value)} />
+                    {variants === 3 ? <Input placeholder="Texte de la variante C" value={variantCText} onChange={(event) => setVariantCText(event.target.value)} /> : null}
                   </div>
-                  <Textarea placeholder="CSS variante B" value={variantBStyle} onChange={(event) => setVariantBStyle(event.target.value)} />
-                  {variants === 3 ? <Textarea placeholder="CSS variante C" value={variantCStyle} onChange={(event) => setVariantCStyle(event.target.value)} /> : null}
-                  {experienceType === "custom_code" ? <Textarea placeholder="JavaScript custom" value={customCode} onChange={(event) => setCustomCode(event.target.value)} /> : null}
+                  <Textarea placeholder="Style CSS de la variante B" value={variantBStyle} onChange={(event) => setVariantBStyle(event.target.value)} />
+                  {variants === 3 ? <Textarea placeholder="Style CSS de la variante C" value={variantCStyle} onChange={(event) => setVariantCStyle(event.target.value)} /> : null}
+                  {experienceType === "custom_code" ? <Textarea placeholder="JavaScript ou CSS supplementaire" value={customCode} onChange={(event) => setCustomCode(event.target.value)} /> : null}
                   <div className="rounded-[1.4rem] border border-[#eadfce] bg-[#fcf8f1] p-4">
-                    <div className="flex items-center justify-between gap-4"><p className="text-sm font-medium text-[#3f3528]">Nombre de variantes</p><p className="text-sm font-semibold text-[#241b13]">{variants}</p></div>
-                    <input className="mt-4 block w-full" type="range" min={2} max={3} step={1} value={variants} onChange={(event) => setVariants(Number(event.target.value))} />
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-medium text-[#3f3528]">Variantes</p>
+                        <p className="mt-1 text-sm text-[#6f6458]">Deux variantes suffisent dans la plupart des cas. Ajoute une troisieme seulement si tu compares plusieurs directions.</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button type="button" variant="outline" onClick={() => setVariants(2)} disabled={variants === 2}>2 variantes</Button>
+                        <Button type="button" variant="outline" onClick={() => setVariants(3)} disabled={variants === 3}>3 variantes</Button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -541,53 +543,32 @@ export function ExperimentForm({ projectId, locale = "fr" }: { projectId: string
             ) : null}
 
             <div className="rounded-[1.8rem] border border-[#eadfce] bg-white p-6">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#a96532]">Orchestration</p>
-              <div className="mt-5 grid gap-4 md:grid-cols-2">
-                <div className="rounded-[1.4rem] border border-[#eadfce] bg-[#fcf8f1] p-4"><div className="flex items-center justify-between gap-4"><p className="text-sm font-medium text-[#3f3528]">Traffic split</p><p className="text-sm font-semibold text-[#241b13]">{trafficSplit}%</p></div><input className="mt-4 block w-full" type="range" min={10} max={100} step={10} value={trafficSplit} onChange={(event) => setTrafficSplit(Number(event.target.value))} /></div>
-                <div className="rounded-[1.4rem] border border-[#eadfce] bg-[#fcf8f1] p-4 text-sm text-[#6f6458]"><p className="font-medium text-[#241b13]">Lecture runtime</p><div className="mt-3 space-y-2"><p>Audience enrolee: {trafficSplit}% du trafic qualifie.</p><p>Repartition des variantes: {experienceType === "visual" || experienceType === "custom_code" ? (variants === 3 ? "A/B/C" : "A/B") : "A/B"}.</p><p>Declenchement: {experienceType === "popup" ? popupTrigger.replaceAll("_", " ") : experienceType === "recommendation" ? recommendationTrigger.replaceAll("_", " ") : "page load"}.</p></div></div>
-                <select className="h-11 rounded-2xl border border-[#d9ccb8] px-4 text-sm" value={priority} onChange={(event) => setPriority(event.target.value)}><option value="low">Priorite basse</option><option value="medium">Priorite moyenne</option><option value="high">Priorite haute</option></select>
-                <Input placeholder="Groupe d'exclusion" value={exclusionGroup} onChange={(event) => setExclusionGroup(event.target.value)} />
-                <select className="h-11 rounded-2xl border border-[#d9ccb8] px-4 text-sm" value={primaryMetric} onChange={(event) => setPrimaryMetric(event.target.value)}><option value="conversion">{t.common.conversion}</option><option value="click">{t.common.click}</option><option value="page_view">{t.common.pageView}</option><option value="add_to_cart">Add to cart</option></select>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#a96532]">Diffusion</p>
+              <p className="mt-2 text-sm text-[#6f6458]">Choisis combien de trafic entre dans l'expérience, quel KPI tu lis, puis son statut de lancement.</p>
+              <div className="mt-5 grid gap-4 lg:grid-cols-[1.2fr_0.8fr_0.8fr]">
+                <div className="rounded-[1.4rem] border border-[#eadfce] bg-[#fcf8f1] p-4">
+                  <div className="flex items-center justify-between gap-4"><p className="text-sm font-medium text-[#3f3528]">Trafic enrôle</p><p className="text-sm font-semibold text-[#241b13]">{trafficSplit}%</p></div>
+                  <input className="mt-4 block w-full" type="range" min={10} max={100} step={10} value={trafficSplit} onChange={(event) => setTrafficSplit(Number(event.target.value))} />
+                  <p className="mt-3 text-sm text-[#6f6458]">{trafficSplit}% du trafic éligible entre dans ce test, puis est réparti entre les variantes.</p>
+                </div>
+                <select className="h-11 rounded-2xl border border-[#d9ccb8] px-4 text-sm" value={primaryMetric} onChange={(event) => setPrimaryMetric(event.target.value)}><option value="conversion">{t.common.conversion}</option><option value="click">{t.common.click}</option><option value="page_view">{t.common.pageView}</option><option value="add_to_cart">Ajout au panier</option></select>
                 <select className="h-11 rounded-2xl border border-[#d9ccb8] px-4 text-sm" value={status} onChange={(event) => setStatus(event.target.value)}><option value="draft">{t.common.draft}</option><option value="running">{t.common.running}</option><option value="paused">{t.common.paused}</option></select>
               </div>
             </div>
 
             <div className="rounded-[1.8rem] border border-[#eadfce] bg-white p-6">
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#a96532]">Audience</p>
-              <p className="mt-2 text-sm text-[#6f6458]">Pays, ville, page, source, viewport, jour, heure. Le tout combinable avec des groupes AND / OR.</p>
+              <p className="mt-2 text-sm text-[#6f6458]">Ajoute seulement les filtres utiles. Un groupe principal et, si besoin, un groupe OU supplementaire.</p>
               <div className="mt-5">
                 <RuleNode node={targeting} depth={0} onChange={(nodeId, updater) => setTargeting((current) => updateNode(current, nodeId, updater) as ExperimentTargetingGroup)} onDelete={(nodeId) => setTargeting((current) => { const next = removeNode(current, nodeId); return next.children.length ? next : { ...next, children: [createCondition()] }; })} onAddCondition={(groupId) => setTargeting((current) => appendToGroup(current, groupId, createCondition()))} onAddGroup={(groupId) => setTargeting((current) => appendToGroup(current, groupId, createGroup()))} />
               </div>
             </div>
-          </div>
-
-          <div className="space-y-6">
-            <div className="rounded-[1.8rem] border border-[#eadfce] bg-[linear-gradient(180deg,#fff5ef_0%,#ffffff_100%)] p-6">
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#a96532]">Resume</p>
-              <p className="mt-3 text-2xl font-semibold tracking-tight text-[#241b13]">{name || "Nommer l'experience"}</p>
-              <div className="mt-5 space-y-3 text-sm text-[#6f6458]">
-                <div className="flex items-start justify-between gap-3"><span>Type</span><span className="font-medium text-[#241b13]">{experienceType.replaceAll("_", " ")}</span></div>
-                <div className="flex items-start justify-between gap-3"><span>Page</span><span className="font-medium text-[#241b13]">{pagePattern}</span></div>
-                <div className="flex items-start justify-between gap-3"><span>Trafic enrole</span><span className="font-medium text-[#241b13]">{trafficSplit}%</span></div>
-                <div className="flex items-start justify-between gap-3"><span>Metrique</span><span className="font-medium text-[#241b13]">{primaryMetric.replaceAll("_", " ")}</span></div>
-                <div className="flex items-start justify-between gap-3"><span>Statut</span><span className="font-medium text-[#241b13]">{status}</span></div>
-                <div className="flex items-start justify-between gap-3"><span>Audience</span><span className="text-right font-medium text-[#241b13]">{targeting.children.length} regle(s) · {targeting.combinator.toUpperCase()}</span></div>
-              </div>
-            </div>
-
-            <div className="rounded-[1.8rem] border border-[#eadfce] bg-white p-6">
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#a96532]">Premier test</p>
-              <p className="mt-3 text-xl font-semibold text-[#241b13]">Bouton panier bleu 50/50</p>
-              <p className="mt-2 text-sm leading-6 text-[#6f6458]">Le flow minimum qu'on voulait vraiment voir fonctionner dans Optify: control vs variante bleue sur la page produit.</p>
-              <Button className="mt-5 h-11 w-full" onClick={applyBlueCartPreset}>Pre-remplir ce test</Button>
-            </div>
-
             <Button disabled={loading} onClick={submit} className="h-12 text-base shadow-[0_18px_36px_rgba(255,111,97,0.25)]">{loading ? t.common.loadingExperiment : "Creer l'experience"}</Button>
             {error ? <p className="text-sm text-destructive">{error}</p> : null}
-          </div>
         </div>
       </div>
     </Card>
   );
 }
+
 
