@@ -1648,6 +1648,8 @@
     });
   }
 
+  registerBuilderMode();
+
   fetch(origin + "/api/sdk/config/" + projectId + "?ts=" + Date.now(), {
     headers: { "ngrok-skip-browser-warning": "true" },
     cache: "no-store"
@@ -1731,7 +1733,6 @@
       registerRecommendationTracking();
       registerCommerceTracking();
       registerErrorTracking();
-      registerBuilderMode();
       emitPerformanceMetrics();
       sendHealthReport();
       window.addEventListener("online", function () {

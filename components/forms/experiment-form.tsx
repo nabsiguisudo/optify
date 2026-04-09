@@ -281,7 +281,7 @@ export function ExperimentForm({ projectId, locale = "fr" }: { projectId: string
         if (variantBText.trim()) url.searchParams.set("optify_builder_text", variantBText);
         if (variantBStyle.trim()) url.searchParams.set("optify_builder_style", variantBStyle);
       }
-      window.open(url.toString(), "_blank", "popup=yes,width=1440,height=960");
+      window.open(url.toString(), "_blank");
       if (scope === "experience") {
         setVisualPickerStatus("Editeur live ouvert. Clique un element dans Shopify puis valide depuis le panneau.");
       } else {
