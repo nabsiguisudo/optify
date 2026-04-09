@@ -874,23 +874,213 @@
 
   function registerBuilderMode() {
     if (!builderMode) return;
+    var builderScope = runtimeUrl.searchParams.get("optify_builder_scope") || "recommendation";
+    var initialSelector = runtimeUrl.searchParams.get("optify_builder_selector") || "";
+    var initialText = runtimeUrl.searchParams.get("optify_builder_text") || "";
+    var initialStyle = runtimeUrl.searchParams.get("optify_builder_style") || "";
+    var selectedTarget = null;
+    var selectedSelector = "";
+    var selectedFallbackSelector = "";
+    var originalSnapshot = null;
+
+    function parseHexColor(value) {
+      var normalized = String(value || "").trim();
+      if (!/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(normalized)) return "";
+      if (normalized.length === 4) {
+        return "#" + normalized.slice(1).split("").map(function (char) { return char + char; }).join("");
+      }
+      return normalized.toLowerCase();
+    }
+
+    function rgbToHex(value) {
+      var match = String(value || "").match(/\d+/g);
+      if (!match || match.length < 3) return "";
+      return "#" + match.slice(0, 3).map(function (item) {
+        return Number(item).toString(16).padStart(2, "0");
+      }).join("");
+    }
+
+    function inspectStyle(target) {
+      var computed = window.getComputedStyle(target);
+      return {
+        backgroundColor: computed.backgroundColor && computed.backgroundColor.indexOf("rgb") === 0 ? rgbToHex(computed.backgroundColor) : "",
+        color: computed.color && computed.color.indexOf("rgb") === 0 ? rgbToHex(computed.color) : "",
+        borderColor: computed.borderColor && computed.borderColor.indexOf("rgb") === 0 ? rgbToHex(computed.borderColor) : "",
+        borderRadius: computed.borderRadius && computed.borderRadius !== "0px" ? computed.borderRadius : "",
+        borderWidth: computed.borderWidth && computed.borderWidth !== "0px" ? computed.borderWidth : ""
+      };
+    }
+
+    function parseStyleDraft(styleValue) {
+      var draft = inspectStyle(document.body);
+      draft.backgroundColor = "";
+      draft.color = "";
+      draft.borderColor = "";
+      draft.borderRadius = "";
+      draft.borderWidth = "";
+      String(styleValue || "")
+        .split(";")
+        .map(function (chunk) { return chunk.trim(); })
+        .filter(Boolean)
+        .forEach(function (chunk) {
+          var parts = chunk.split(":");
+          if (parts.length < 2) return;
+          var key = parts.shift().trim().toLowerCase();
+          var value = parts.join(":").replace(/\s*!important$/i, "").trim();
+          if (key === "background" || key === "background-color") draft.backgroundColor = parseHexColor(value) || value;
+          if (key === "color") draft.color = parseHexColor(value) || value;
+          if (key === "border-color") draft.borderColor = parseHexColor(value) || value;
+          if (key === "border-radius") draft.borderRadius = value;
+          if (key === "border-width") draft.borderWidth = value;
+        });
+      return draft;
+    }
+
+    var styleDraft = parseStyleDraft(initialStyle);
+
+    function serializeStyleDraft(draft) {
+      return [
+        draft.backgroundColor ? "background:" + draft.backgroundColor + " !important" : "",
+        draft.color ? "color:" + draft.color + " !important" : "",
+        draft.borderColor ? "border-color:" + draft.borderColor + " !important" : "",
+        draft.borderWidth ? "border-width:" + draft.borderWidth + " !important" : "",
+        draft.borderWidth ? "border-style:solid !important" : "",
+        draft.borderRadius ? "border-radius:" + draft.borderRadius + " !important" : ""
+      ].filter(Boolean).join(";");
+    }
+
+    function snapshotTarget(target) {
+      return {
+        text: target.textContent || "",
+        style: target.getAttribute("style") || ""
+      };
+    }
+
+    function restoreTarget() {
+      if (!selectedTarget || !originalSnapshot) return;
+      selectedTarget.textContent = originalSnapshot.text;
+      if (originalSnapshot.style) {
+        selectedTarget.setAttribute("style", originalSnapshot.style);
+      } else {
+        selectedTarget.removeAttribute("style");
+      }
+    }
+
+    function applyDraftToTarget() {
+      if (!selectedTarget) return;
+      if (builderScope === "experience" && textInput.value) {
+        selectedTarget.textContent = textInput.value;
+      } else if (builderScope === "experience" && originalSnapshot) {
+        selectedTarget.textContent = originalSnapshot.text;
+      }
+      if (builderScope !== "experience") return;
+      if (styleDraft.backgroundColor) selectedTarget.style.setProperty("background", styleDraft.backgroundColor, "important");
+      if (styleDraft.color) selectedTarget.style.setProperty("color", styleDraft.color, "important");
+      if (styleDraft.borderColor) selectedTarget.style.setProperty("border-color", styleDraft.borderColor, "important");
+      if (styleDraft.borderWidth) {
+        selectedTarget.style.setProperty("border-width", styleDraft.borderWidth, "important");
+        selectedTarget.style.setProperty("border-style", "solid", "important");
+      }
+      if (styleDraft.borderRadius) selectedTarget.style.setProperty("border-radius", styleDraft.borderRadius, "important");
+      Array.prototype.forEach.call(selectedTarget.querySelectorAll("*"), function (child) {
+        if (styleDraft.color) child.style.setProperty("color", styleDraft.color, "important");
+      });
+    }
 
     var overlay = document.createElement("div");
     overlay.setAttribute("data-optify-builder-ui", "true");
-    overlay.style.cssText = "position:fixed;pointer-events:none;z-index:2147483646;border:2px solid #135c43;background:rgba(19,92,67,.12);border-radius:10px;display:none;";
+    overlay.style.cssText = "position:fixed;pointer-events:none;z-index:2147483646;border:2px solid #ff6f61;background:rgba(255,111,97,.12);border-radius:12px;display:none;box-shadow:0 0 0 9999px rgba(17,16,16,.06);";
     document.body.appendChild(overlay);
 
-    var badge = document.createElement("div");
-    badge.setAttribute("data-optify-builder-ui", "true");
-    badge.style.cssText = "position:fixed;top:16px;left:16px;z-index:2147483647;background:#11291f;color:#fff;padding:10px 14px;border-radius:999px;font:600 12px/1.2 sans-serif;box-shadow:0 12px 28px rgba(0,0,0,.18);";
-    badge.textContent = "Optify placement picker: hover and click an element";
-    document.body.appendChild(badge);
+    var panel = document.createElement("aside");
+    panel.setAttribute("data-optify-builder-ui", "true");
+    panel.style.cssText = "position:fixed;top:20px;right:20px;z-index:2147483647;width:360px;max-width:calc(100vw - 32px);background:#fffaf5;color:#241b13;border:1px solid rgba(169,101,50,.18);border-radius:24px;box-shadow:0 28px 80px rgba(28,18,10,.24);font:500 14px/1.5 Inter,system-ui,sans-serif;";
+    panel.innerHTML =
+      "<div data-optify-builder-ui='true' style='padding:20px 20px 14px;border-bottom:1px solid rgba(169,101,50,.12)'>" +
+        "<div style='font:700 12px/1.2 Inter,system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#a96532'>Optify live editor</div>" +
+        "<div style='margin-top:10px;font:700 20px/1.2 Inter,system-ui,sans-serif;color:#241b13'>" + (builderScope === "experience" ? "Edite la vraie boutique" : "Choisis un placement Shopify") + "</div>" +
+        "<div style='margin-top:8px;color:#6f6458'>" + (builderScope === "experience" ? "Clique un element de la page, modifie-le dans ce panneau, puis valide pour renvoyer le resultat dans Optify." : "Clique un element de la page pour recuperer son selecteur et le point d'insertion.") + "</div>" +
+      "</div>" +
+      "<div data-optify-builder-ui='true' style='padding:18px 20px'>" +
+        "<div style='font:600 12px/1.2 Inter,system-ui,sans-serif;color:#a96532;text-transform:uppercase;letter-spacing:.12em'>Element cible</div>" +
+        "<div id='optify-builder-label' style='margin-top:10px;font:600 14px/1.5 Inter,system-ui,sans-serif;color:#241b13'>Aucun element selectionne</div>" +
+        "<div id='optify-builder-selector' style='margin-top:8px;padding:10px 12px;border-radius:16px;background:#fff;border:1px solid rgba(169,101,50,.12);color:#6f6458;font:500 12px/1.5 ui-monospace, SFMono-Regular, monospace;word-break:break-all'>Le selecteur apparaitra ici.</div>" +
+        "<div id='optify-builder-editor' style='display:" + (builderScope === "experience" ? "block" : "none") + ";margin-top:16px'>" +
+          "<label style='display:block;font:600 12px/1.2 Inter,system-ui,sans-serif;color:#a96532;text-transform:uppercase;letter-spacing:.12em'>Texte variante B</label>" +
+          "<textarea id='optify-builder-text' style='margin-top:8px;width:100%;min-height:88px;padding:12px 14px;border-radius:16px;border:1px solid rgba(169,101,50,.18);background:#fff;color:#241b13;resize:vertical'></textarea>" +
+          "<div style='margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:12px'>" +
+            "<label style='display:block'><span style='display:block;font:600 12px/1.2 Inter,system-ui,sans-serif;color:#a96532;text-transform:uppercase;letter-spacing:.12em'>Fond</span><input id='optify-builder-bg' type='color' style='margin-top:8px;width:100%;height:44px;border-radius:14px;border:1px solid rgba(169,101,50,.18);background:#fff;padding:4px'></label>" +
+            "<label style='display:block'><span style='display:block;font:600 12px/1.2 Inter,system-ui,sans-serif;color:#a96532;text-transform:uppercase;letter-spacing:.12em'>Texte</span><input id='optify-builder-color' type='color' style='margin-top:8px;width:100%;height:44px;border-radius:14px;border:1px solid rgba(169,101,50,.18);background:#fff;padding:4px'></label>" +
+            "<label style='display:block'><span style='display:block;font:600 12px/1.2 Inter,system-ui,sans-serif;color:#a96532;text-transform:uppercase;letter-spacing:.12em'>Bordure</span><input id='optify-builder-border' type='color' style='margin-top:8px;width:100%;height:44px;border-radius:14px;border:1px solid rgba(169,101,50,.18);background:#fff;padding:4px'></label>" +
+            "<label style='display:block'><span style='display:block;font:600 12px/1.2 Inter,system-ui,sans-serif;color:#a96532;text-transform:uppercase;letter-spacing:.12em'>Rayon</span><input id='optify-builder-radius' type='text' placeholder='16px' style='margin-top:8px;width:100%;height:44px;border-radius:14px;border:1px solid rgba(169,101,50,.18);background:#fff;padding:0 12px;color:#241b13'></label>" +
+          "</div>" +
+        "</div>" +
+        "<div style='margin-top:18px;display:flex;flex-wrap:wrap;gap:10px'>" +
+          "<button id='optify-builder-send' type='button' style='border:0;background:linear-gradient(135deg,#ff5f6d 0%,#ff7f50 55%,#ffb36b 100%);color:#fff;padding:12px 16px;border-radius:999px;font:600 13px/1 Inter,system-ui,sans-serif;cursor:pointer'>Valider dans Optify</button>" +
+          "<button id='optify-builder-reset' type='button' style='border:1px solid rgba(169,101,50,.18);background:#fff;color:#6f6458;padding:12px 16px;border-radius:999px;font:600 13px/1 Inter,system-ui,sans-serif;cursor:pointer'>Reinitialiser</button>" +
+          "<button id='optify-builder-close' type='button' style='border:1px solid rgba(169,101,50,.18);background:#fff;color:#6f6458;padding:12px 16px;border-radius:999px;font:600 13px/1 Inter,system-ui,sans-serif;cursor:pointer'>Fermer</button>" +
+        "</div>" +
+      "</div>";
+    document.body.appendChild(panel);
+
+    var labelNode = panel.querySelector("#optify-builder-label");
+    var selectorNode = panel.querySelector("#optify-builder-selector");
+    var textInput = panel.querySelector("#optify-builder-text");
+    var backgroundInput = panel.querySelector("#optify-builder-bg");
+    var colorInput = panel.querySelector("#optify-builder-color");
+    var borderInput = panel.querySelector("#optify-builder-border");
+    var radiusInput = panel.querySelector("#optify-builder-radius");
+    var sendButton = panel.querySelector("#optify-builder-send");
+    var resetButton = panel.querySelector("#optify-builder-reset");
+    var closeButton = panel.querySelector("#optify-builder-close");
+
+    if (textInput) textInput.value = initialText;
+    if (backgroundInput) backgroundInput.value = parseHexColor(styleDraft.backgroundColor) || "#2563eb";
+    if (colorInput) colorInput.value = parseHexColor(styleDraft.color) || "#ffffff";
+    if (borderInput) borderInput.value = parseHexColor(styleDraft.borderColor) || "#2563eb";
+    if (radiusInput) radiusInput.value = styleDraft.borderRadius || "";
 
     function resolveTarget(eventTarget) {
       if (!eventTarget || !eventTarget.closest) return null;
-      var target = eventTarget.closest("section,aside,div,button,a,ul,ol,li,article,header,footer,main");
-      if (target && target.getAttribute && target.getAttribute("data-optify-builder-ui") === "true") return null;
+      var target = eventTarget.closest("button,a,input[type='submit'],[role='button'],section,aside,div,li,article,header,footer,main");
+      if (!target || !target.getAttribute) return null;
+      if (target.getAttribute("data-optify-builder-ui") === "true") return null;
       return target;
+    }
+
+    function syncPanelFromTarget(target) {
+      labelNode.textContent = normalizeText(target.textContent || target.getAttribute("aria-label") || target.tagName, 120);
+      selectorNode.textContent = selectedSelector || "Le selecteur apparaitra ici.";
+      if (builderScope !== "experience") return;
+      originalSnapshot = snapshotTarget(target);
+      if (textInput && !initialText) textInput.value = normalizeText(originalSnapshot.text, 200);
+      var computedDraft = inspectStyle(target);
+      if (!initialStyle) {
+        styleDraft = computedDraft;
+        if (backgroundInput) backgroundInput.value = parseHexColor(styleDraft.backgroundColor) || "#2563eb";
+        if (colorInput) colorInput.value = parseHexColor(styleDraft.color) || "#ffffff";
+        if (borderInput) borderInput.value = parseHexColor(styleDraft.borderColor) || "#2563eb";
+        if (radiusInput) radiusInput.value = styleDraft.borderRadius || "";
+      }
+      applyDraftToTarget();
+    }
+
+    function sendSelection() {
+      if (!selectedTarget) return;
+      var payload = {
+        type: "optify-builder-selection",
+        scope: builderScope,
+        selector: selectedSelector,
+        fallbackSelector: selectedFallbackSelector,
+        label: labelNode.textContent || "",
+        pathname: window.location.pathname,
+        url: window.location.href,
+        variantText: builderScope === "experience" ? textInput.value : "",
+        variantStyle: builderScope === "experience" ? serializeStyleDraft(styleDraft) : ""
+      };
+      if (window.opener && typeof window.opener.postMessage === "function") {
+        window.opener.postMessage(payload, builderOrigin || "*");
+      }
     }
 
     document.addEventListener("mousemove", function (event) {
@@ -913,28 +1103,84 @@
       event.preventDefault();
       event.stopPropagation();
       event.stopImmediatePropagation();
-
-      var payload = {
-        type: "optify-builder-selection",
-        selector: buildPreciseSelector(target),
-        fallbackSelector: buildElementSelector(target),
-        label: normalizeText(target.textContent || target.getAttribute("aria-label") || target.tagName, 120),
-        pathname: window.location.pathname,
-        url: window.location.href
-      };
-
-      if (window.opener && typeof window.opener.postMessage === "function") {
-        window.opener.postMessage(payload, builderOrigin || "*");
+      if (selectedTarget && selectedTarget !== target && builderScope === "experience") {
+        restoreTarget();
       }
+      selectedTarget = target;
+      selectedSelector = buildPreciseSelector(target);
+      selectedFallbackSelector = buildElementSelector(target);
+      syncPanelFromTarget(target);
+      if (builderScope !== "experience") {
+        sendSelection();
+        window.setTimeout(function () {
+          try {
+            window.close();
+          } catch (error) {}
+        }, 120);
+      }
+    }, true);
 
-      badge.textContent = "Selection sent back to Optify";
-      window.setTimeout(function () {
+    function handleDraftChange() {
+      styleDraft = {
+        backgroundColor: backgroundInput ? backgroundInput.value : styleDraft.backgroundColor,
+        color: colorInput ? colorInput.value : styleDraft.color,
+        borderColor: borderInput ? borderInput.value : styleDraft.borderColor,
+        borderRadius: radiusInput ? radiusInput.value : styleDraft.borderRadius,
+        borderWidth: styleDraft.borderWidth || "1px"
+      };
+      applyDraftToTarget();
+    }
+
+    if (textInput) {
+      textInput.addEventListener("input", function () {
+        applyDraftToTarget();
+      });
+    }
+    if (backgroundInput) backgroundInput.addEventListener("input", handleDraftChange);
+    if (colorInput) colorInput.addEventListener("input", handleDraftChange);
+    if (borderInput) borderInput.addEventListener("input", handleDraftChange);
+    if (radiusInput) radiusInput.addEventListener("input", handleDraftChange);
+
+    if (sendButton) {
+      sendButton.addEventListener("click", function () {
+        sendSelection();
+      });
+    }
+
+    if (resetButton) {
+      resetButton.addEventListener("click", function () {
+        if (selectedTarget && builderScope === "experience") {
+          restoreTarget();
+          if (originalSnapshot && textInput) textInput.value = normalizeText(originalSnapshot.text, 200);
+          styleDraft = inspectStyle(selectedTarget);
+          if (backgroundInput) backgroundInput.value = parseHexColor(styleDraft.backgroundColor) || "#2563eb";
+          if (colorInput) colorInput.value = parseHexColor(styleDraft.color) || "#ffffff";
+          if (borderInput) borderInput.value = parseHexColor(styleDraft.borderColor) || "#2563eb";
+          if (radiusInput) radiusInput.value = styleDraft.borderRadius || "";
+        }
+      });
+    }
+
+    if (closeButton) {
+      closeButton.addEventListener("click", function () {
+        if (builderScope === "experience") restoreTarget();
         try {
           window.close();
         } catch (error) {}
-        badge.textContent = "Selection sent back to Optify. You can close this tab.";
-      }, 140);
-    }, true);
+      });
+    }
+
+    if (initialSelector) {
+      try {
+        var presetTarget = document.querySelector(initialSelector);
+        if (presetTarget) {
+          selectedTarget = presetTarget;
+          selectedSelector = buildPreciseSelector(presetTarget);
+          selectedFallbackSelector = buildElementSelector(presetTarget);
+          syncPanelFromTarget(presetTarget);
+        }
+      } catch (error) {}
+    }
   }
 
   function escapeHtml(value) {

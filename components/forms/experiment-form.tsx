@@ -149,6 +149,9 @@ export function ExperimentForm({ projectId, locale = "fr" }: { projectId: string
   const [pagePattern, setPagePattern] = useState("/products/*");
   const [hypothesis, setHypothesis] = useState("");
   const [selector, setSelector] = useState("[data-optify='hero-cta']");
+  const [visualTargetUrl, setVisualTargetUrl] = useState("");
+  const [visualSelectionLabel, setVisualSelectionLabel] = useState("");
+  const [visualPickerStatus, setVisualPickerStatus] = useState("Aucun element Shopify selectionne.");
   const [variantBText, setVariantBText] = useState("");
   const [variantCText, setVariantCText] = useState("");
   const [variantBStyle, setVariantBStyle] = useState("");
@@ -217,6 +220,16 @@ export function ExperimentForm({ projectId, locale = "fr" }: { projectId: string
     function handleMessage(event: MessageEvent) {
       const data = event.data;
       if (!data || data.type !== "optify-builder-selection") return;
+      if (data.scope === "experience") {
+        setSelector(data.selector || "");
+        setVisualTargetUrl(data.url || "");
+        setVisualSelectionLabel(data.label || "");
+        if (typeof data.variantText === "string") setVariantBText(data.variantText);
+        if (typeof data.variantStyle === "string") setVariantBStyle(data.variantStyle);
+        if (data.pathname) setPagePattern(data.pathname);
+        setVisualPickerStatus(data.selector ? `Element relie a Shopify: ${data.selector}` : "Selection recue depuis Shopify.");
+        return;
+      }
       setRecommendationPlacementSelector(data.selector || "");
       setRecommendationTargetUrl(data.url || "");
       if (data.pathname) setPagePattern(data.pathname);
@@ -232,6 +245,8 @@ export function ExperimentForm({ projectId, locale = "fr" }: { projectId: string
     setPagePattern("/products/*");
     setHypothesis("Un bouton d'ajout au panier plus contraste sur la page produit devrait augmenter les ajouts au panier.");
     setSelector("form[action*='/cart/add'] [type='submit'], [name='add'], button[data-add-to-cart], [data-add-to-cart]");
+    setVisualSelectionLabel("Bouton d'ajout au panier");
+    setVisualPickerStatus("Preset applique. Ouvre l'editeur live si tu veux viser un autre bouton.");
     setVariantBStyle("background:#2563eb !important;color:#ffffff !important;border-color:#2563eb !important;");
     setVariantBText("");
     setPrimaryMetric("add_to_cart");
@@ -247,20 +262,46 @@ export function ExperimentForm({ projectId, locale = "fr" }: { projectId: string
     setSelectedCollectionIds((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
   }
 
-  function openLivePicker() {
-    if (!recommendationTargetUrl.trim()) {
-      setPickerStatus("Ajoute d'abord une URL Shopify.");
+  function openBuilderWindow(targetUrl: string, scope: "experience" | "recommendation") {
+    if (!targetUrl.trim()) {
+      if (scope === "experience") {
+        setVisualPickerStatus("Ajoute d'abord une URL Shopify.");
+      } else {
+        setPickerStatus("Ajoute d'abord une URL Shopify.");
+      }
       return;
     }
     try {
-      const url = new URL(recommendationTargetUrl);
+      const url = new URL(targetUrl);
       url.searchParams.set("optify_builder", "1");
+      url.searchParams.set("optify_builder_scope", scope);
       url.searchParams.set("optify_builder_origin", window.location.origin);
+      if (scope === "experience") {
+        url.searchParams.set("optify_builder_selector", selector);
+        if (variantBText.trim()) url.searchParams.set("optify_builder_text", variantBText);
+        if (variantBStyle.trim()) url.searchParams.set("optify_builder_style", variantBStyle);
+      }
       window.open(url.toString(), "_blank", "popup=yes,width=1440,height=960");
-      setPickerStatus("Picker ouvert. Clique un element dans Shopify.");
+      if (scope === "experience") {
+        setVisualPickerStatus("Editeur live ouvert. Clique un element dans Shopify puis valide depuis le panneau.");
+      } else {
+        setPickerStatus("Picker ouvert. Clique un element dans Shopify.");
+      }
     } catch {
-      setPickerStatus("L'URL cible est invalide.");
+      if (scope === "experience") {
+        setVisualPickerStatus("L'URL cible est invalide.");
+      } else {
+        setPickerStatus("L'URL cible est invalide.");
+      }
     }
+  }
+
+  function openLivePicker() {
+    openBuilderWindow(recommendationTargetUrl, "recommendation");
+  }
+
+  function openVisualEditor() {
+    openBuilderWindow(visualTargetUrl, "experience");
   }
 
   async function submit() {
@@ -387,7 +428,14 @@ export function ExperimentForm({ projectId, locale = "fr" }: { projectId: string
               <div className="rounded-[1.8rem] border border-[#eadfce] bg-white p-6">
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#a96532]">Visual experience</p>
                 <div className="mt-5 space-y-4">
-                  <VisualEditorCanvas locale={currentLocale} selector={selector} variantText={variantBText} variantStyle={variantBStyle} onSelectorChange={setSelector} onVariantTextChange={setVariantBText} onVariantStyleChange={setVariantBStyle} />
+                  <VisualEditorCanvas
+                    targetUrl={visualTargetUrl}
+                    onTargetUrlChange={setVisualTargetUrl}
+                    onOpenEditor={openVisualEditor}
+                    pickerStatus={visualPickerStatus}
+                    selectedLabel={visualSelectionLabel}
+                    selector={selector}
+                  />
                   <Input placeholder="Selecteur CSS" value={selector} onChange={(event) => setSelector(event.target.value)} />
                   <div className="grid gap-4 md:grid-cols-2">
                     <Input placeholder="Texte variante B" value={variantBText} onChange={(event) => setVariantBText(event.target.value)} />
