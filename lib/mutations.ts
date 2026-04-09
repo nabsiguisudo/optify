@@ -103,6 +103,7 @@ export const createExperimentSchema = z
     pagePattern: z.string().min(1),
     hypothesis: z.string().min(8),
     type: z.enum(["visual", "custom_code", "popup", "recommendation"]).default("visual"),
+    visualTargetUrl: z.string().optional().default(""),
     selector: z.string().optional().default(""),
     primaryMetric: z.enum(["page_view", "click", "conversion", "add_to_cart"]),
     status: z.enum(["draft", "running", "paused"]),
@@ -413,6 +414,7 @@ export async function createExperiment(input: z.infer<typeof createExperimentSch
   };
   const targeting = payload.targeting ?? fallbackTargeting;
   const audienceRules = buildLegacyAudienceRules(targeting);
+  const visualTargetUrl = payload.visualTargetUrl?.trim() ?? "";
 
   const recommendationConfig: RecommendationConfig | undefined =
     payload.type === "recommendation"
@@ -444,7 +446,8 @@ export async function createExperiment(input: z.infer<typeof createExperimentSch
       : {
           strategy: "frequently_bought_together",
           placement: "pdp_sidebar",
-          maxProducts: 3
+          maxProducts: 3,
+          targetUrl: visualTargetUrl || undefined
         };
   const popupConfig: PopupConfig | undefined =
     payload.type === "popup"

@@ -307,14 +307,25 @@ export function ExperimentForm({ projectId, locale = "fr" }: { projectId: string
   async function submit() {
     setLoading(true);
     setError("");
+    const normalizedVisualTargetUrl = visualTargetUrl.trim();
+    let resolvedPagePattern = pagePattern.trim();
+
+    if ((experienceType === "visual" || experienceType === "custom_code") && normalizedVisualTargetUrl) {
+      try {
+        const parsed = new URL(normalizedVisualTargetUrl);
+        resolvedPagePattern = parsed.pathname || "/";
+      } catch {}
+    }
+
     const response = await fetch(`/api/projects/${projectId}/experiments`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         type: experienceType,
         name,
-        pagePattern,
+        pagePattern: resolvedPagePattern || pagePattern,
         hypothesis,
+        visualTargetUrl: normalizedVisualTargetUrl,
         selector,
         primaryMetric,
         status,
