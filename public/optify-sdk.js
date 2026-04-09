@@ -272,6 +272,24 @@
   function applyChanges(changes, experimentId, variantKey) {
     var appliedCount = 0;
     var matchedSelectors = [];
+
+    function applyDeclarationString(element, cssText) {
+      String(cssText || "")
+        .split(";")
+        .map(function (chunk) { return chunk.trim(); })
+        .filter(Boolean)
+        .forEach(function (chunk) {
+          var parts = chunk.split(":");
+          if (parts.length < 2) return;
+          var property = parts.shift().trim();
+          var rawValue = parts.join(":").trim();
+          var important = /!important$/i.test(rawValue);
+          var value = rawValue.replace(/\s*!important$/i, "").trim();
+          if (!property || !value) return;
+          element.style.setProperty(property, value, important ? "important" : "");
+        });
+    }
+
     changes.forEach(function (change) {
       var resolution = resolveChangeTargets(change);
       Array.prototype.forEach.call(resolution.elements, function (element) {
@@ -282,23 +300,16 @@
           element.style.display = change.value === "hide" ? "none" : "";
         }
         if (change.type === "style") {
-          element.style.cssText += change.value;
-          if (String(change.value || "").toLowerCase().indexOf("background") !== -1) {
-            element.style.setProperty("background", element.style.background || "", "important");
-            element.style.setProperty("background-color", element.style.backgroundColor || "", "important");
-          }
-          if (String(change.value || "").toLowerCase().indexOf("color") !== -1) {
-            element.style.setProperty("color", element.style.color || "", "important");
-          }
-          if (String(change.value || "").toLowerCase().indexOf("border") !== -1) {
-            element.style.setProperty("border-color", element.style.borderColor || "", "important");
-          }
+          applyDeclarationString(element, change.value);
           Array.prototype.forEach.call(element.querySelectorAll("*"), function (child) {
             if (String(change.value || "").toLowerCase().indexOf("color") !== -1) {
-              child.style.setProperty("color", element.style.color || "", "important");
+              child.style.setProperty("color", element.style.color || "#ffffff", "important");
             }
             if (String(change.value || "").toLowerCase().indexOf("fill") !== -1) {
               child.style.setProperty("fill", "currentColor", "important");
+            }
+            if (String(change.value || "").toLowerCase().indexOf("stroke") !== -1) {
+              child.style.setProperty("stroke", "currentColor", "important");
             }
           });
         }
