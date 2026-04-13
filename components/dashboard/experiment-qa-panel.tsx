@@ -13,7 +13,25 @@ export function ExperimentQaPanel({
   experimentId: string;
   defaultTargetUrl: string;
 }) {
-  const [targetUrl, setTargetUrl] = useState(defaultTargetUrl);
+  const [targetUrl, setTargetUrl] = useState(() => {
+    if (!defaultTargetUrl.trim()) return "";
+    try {
+      const url = new URL(defaultTargetUrl);
+      [
+        "optify_builder",
+        "optify_builder_origin",
+        "optify_builder_scope",
+        "optify_builder_selector",
+        "optify_builder_text",
+        "optify_builder_style",
+        "optify_experiment",
+        "optify_variant"
+      ].forEach((key) => url.searchParams.delete(key));
+      return url.toString();
+    } catch {
+      return defaultTargetUrl;
+    }
+  });
 
   const qaParams = useMemo(() => {
     const params = new URLSearchParams();
@@ -46,7 +64,7 @@ export function ExperimentQaPanel({
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">QA variant</p>
           <h2 className="mt-2 text-2xl font-semibold">Tester la variante B</h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            Colle une URL Shopify produit ou collection, puis copie ou ouvre directement le lien QA.
+            Colle une vraie URL Shopify, puis copie ou ouvre directement le lien QA.
           </p>
         </div>
         <div className="rounded-2xl bg-secondary/50 px-4 py-3 text-sm">

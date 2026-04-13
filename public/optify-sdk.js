@@ -1074,6 +1074,7 @@
 
     function sendSelection() {
       if (!selectedTarget) return;
+      var cleanUrl = getCleanBuilderUrl();
       var payload = {
         type: "optify-builder-selection",
         scope: builderScope,
@@ -1081,7 +1082,7 @@
         fallbackSelector: selectedFallbackSelector,
         label: labelNode.textContent || "",
         pathname: window.location.pathname,
-        url: window.location.href,
+        url: cleanUrl,
         variantText: builderScope === "experience" ? textInput.value : "",
         variantStyle: builderScope === "experience" ? serializeStyleDraft(styleDraft) : ""
       };
@@ -1769,3 +1770,23 @@
     })
     .catch(function () {});
 })();
+    function getCleanBuilderUrl() {
+      try {
+        var cleanUrl = new URL(window.location.href);
+        [
+          "optify_builder",
+          "optify_builder_origin",
+          "optify_builder_scope",
+          "optify_builder_selector",
+          "optify_builder_text",
+          "optify_builder_style",
+          "optify_experiment",
+          "optify_variant"
+        ].forEach(function (key) {
+          cleanUrl.searchParams.delete(key);
+        });
+        return cleanUrl.toString();
+      } catch (error) {
+        return window.location.origin + (window.location.pathname || "/");
+      }
+    }
