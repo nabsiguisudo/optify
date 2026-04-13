@@ -467,3 +467,11 @@ export async function deleteDevProject(projectId: string) {
     store.launchAudit = store.launchAudit.filter((entry) => remainingExperimentIds.has(entry.itemId));
   });
 }
+
+export async function deleteDevExperiment(experimentId: string) {
+  await mutateDevStore(async (store) => {
+    store.experiments = store.experiments.filter((experiment) => experiment.id !== experimentId);
+    store.events = store.events.filter((event) => event.experimentId !== experimentId);
+    store.launchAudit = store.launchAudit.filter((entry) => entry.itemId !== experimentId);
+  });
+}

@@ -1,7 +1,7 @@
 import { randomUUID } from "crypto";
 import { z } from "zod";
 import { createSupabaseAdminClient } from "@/lib/supabase";
-import { createDevExperiment, createDevProject, updateDevExperimentRollout } from "@/lib/dev-store";
+import { createDevExperiment, createDevProject, deleteDevExperiment, updateDevExperimentRollout } from "@/lib/dev-store";
 import { getCurrentUser } from "@/lib/data";
 import { hasSupabaseEnv } from "@/lib/env";
 import type {
@@ -220,6 +220,11 @@ export const updateExperimentRolloutSchema = z.object({
   trafficSplit: z.coerce.number().min(1).max(100),
   status: z.enum(["draft", "running", "paused"]).optional(),
   workflowState: z.enum(["draft", "ready_for_review", "approved", "scheduled", "running", "paused"]).optional()
+});
+
+export const deleteExperimentSchema = z.object({
+  projectId: z.string().min(1),
+  experimentId: z.string().min(1)
 });
 
 function buildLegacyAudienceRules(targeting?: ExperimentTargetingGroup): AudienceRule[] {
@@ -612,4 +617,25 @@ export async function updateExperimentRollout(input: z.infer<typeof updateExperi
   }
 
   return experiment;
+}
+
+export async function deleteExperiment(input: z.infer<typeof deleteExperimentSchema>): Promise<void> {
+  const payload = deleteExperimentSchema.parse(input);
+
+  if (!hasSupabaseEnv()) {
+    await deleteDevExperiment(payload.experimentId);
+    return;
+  }
+
+  const supabase = createSupabaseAdminClient();
+  await supabase.from("variants").delete().eq("experiment_id", payload.experimentId);
+  const { error } = await supabase
+    .from("experiments")
+    .delete()
+    .eq("id", payload.experimentId)
+    .eq("project_id", payload.projectId);
+
+  if (error) {
+    throw new Error(error.message);
+  }
 }

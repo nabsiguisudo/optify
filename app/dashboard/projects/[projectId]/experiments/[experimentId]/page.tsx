@@ -11,6 +11,33 @@ import { getDetailedExperimentReport, getExperimentById, getExperimentStats, get
 import { getDictionary, localizeMetric, localizeStatus, resolveLocale } from "@/lib/i18n";
 import { formatNumber, formatPercent } from "@/lib/utils";
 
+function sanitizeQaTargetUrl(rawUrl: string | undefined, storefrontBase: string) {
+  if (!rawUrl?.trim()) return undefined;
+  try {
+    const parsed = new URL(rawUrl);
+    const appOrigin = process.env.NEXT_PUBLIC_APP_URL ? new URL(process.env.NEXT_PUBLIC_APP_URL).origin : "";
+    if (appOrigin && parsed.origin === appOrigin) {
+      return undefined;
+    }
+    [
+      "optify_builder",
+      "optify_builder_origin",
+      "optify_builder_scope",
+      "optify_builder_selector",
+      "optify_builder_text",
+      "optify_builder_style",
+      "optify_experiment",
+      "optify_variant"
+    ].forEach((key) => parsed.searchParams.delete(key));
+    return parsed.toString();
+  } catch {
+    if (rawUrl.startsWith("/") && storefrontBase) {
+      return `${storefrontBase}${rawUrl}`;
+    }
+    return undefined;
+  }
+}
+
 export default async function ExperimentDetailPage({
   params,
   searchParams
@@ -41,9 +68,12 @@ export default async function ExperimentDetailPage({
   const project = projectResult.status === "fulfilled" ? projectResult.value : undefined;
   const recentProductUrl = recentProductUrlResult.status === "fulfilled" ? recentProductUrlResult.value : undefined;
   const storefrontBase = project?.domain ? `https://${project.domain.replace(/^https?:\/\//, "").replace(/\/$/, "")}` : "";
-  const defaultQaUrl = experiment.recommendationConfig?.targetUrl
-    ?? recentProductUrl
-    ?? (storefrontBase && !experiment.pagePattern.includes("*") ? `${storefrontBase}${experiment.pagePattern}` : storefrontBase);
+  const exactPatternUrl = storefrontBase && !experiment.pagePattern.includes("*") ? `${storefrontBase}${experiment.pagePattern}` : undefined;
+  const defaultQaUrl =
+    sanitizeQaTargetUrl(experiment.recommendationConfig?.targetUrl, storefrontBase)
+    ?? exactPatternUrl
+    ?? sanitizeQaTargetUrl(recentProductUrl, storefrontBase)
+    ?? storefrontBase;
 
   return (
     <div className="space-y-6">
